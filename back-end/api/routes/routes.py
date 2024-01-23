@@ -1,15 +1,8 @@
-<<<<<<< HEAD
-from fastapi import APIRouter, HTTPException, File, UploadFile
-from typing import List
-from ..models import TitleObject, NameObject, AkaTitle, PrincipalsObject, RatingObject, GenreTitle, gqueryObject, nqueryObject, tqueryObject
-from ..database import get_database_connection
-=======
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
 from typing import List
 from ..models import TitleObject, NameObject, AkaTitle, PrincipalsObject, RatingObject, GenreTitle, gqueryObject
 from ..database import get_database_connection, check_connection, create_backup, restore, pick_backup
 from ..utils.security import get_current_admin_user
->>>>>>> 9551302 (Changes to back-end:)
 import aiomysql
 
 router = APIRouter()
@@ -54,32 +47,6 @@ async def get_title_details(titleID: str):
                 if not title_data:
                     raise HTTPException(status_code=404, detail="Title not found")
 
-<<<<<<< HEAD
-                await cursor.execute("""SELECT G.`Genre` 
-                                        FROM `Title` T
-                                        INNER JOIN `Title_Genre` tg ON T.`Title_ID` = tg.`Title_ID`
-                                        INNER JOIN `Genre` G ON tg.`Genre_ID` = G.`Genre_ID`
-                                        WHERE T.`Title_ID` = %s;""", (titleID,))
-                genres_data = await cursor.fetchall()
-                
-                await cursor.execute("""SELECT alt.`Title_AKA`, alt.`Region` 
-                                        FROM `Title` T
-                                        INNER JOIN `Alt_Title` alt ON T.`Title_ID` = alt.`Title_ID`
-                                        WHERE T .`Title_ID` = %s;""", (titleID,))
-                akas_data = await cursor.fetchall()
-
-                await cursor.execute("""SELECT p.`Name_ID`, p.`Name`, pr.`Profession` 
-                                        FROM `Person` p
-                                        INNER JOIN `Profession_Person` pp ON p.`Name_ID` = pp.`Name_ID`
-                                        INNER JOIN `Profession` pr ON pp.`Profession_ID` = pr.`Profession_ID`
-                                        WHERE p.`Name_ID` IN (
-                                            SELECT tp.`Name_ID`
-                                            FROM `Participates_In` tp
-                                            WHERE tp.`Title_ID` = %s
-                                        );""", (titleID,))
-                principals_data = await cursor.fetchall()
-
-=======
                 await cursor.execute("""SELECT G.`Genre` as `genreTitle`
                                         FROM `Title` T
                                         INNER JOIN `Title_Genre` tg ON T.`Title_ID` = tg.`Title_FK`
@@ -108,7 +75,6 @@ async def get_title_details(titleID: str):
 
                 print(principals_data)
 
->>>>>>> 9551302 (Changes to back-end:)
                 title_object = TitleObject(
                     titleID=title_data["Title_ID"],
                     type=title_data["Type"],
@@ -116,26 +82,18 @@ async def get_title_details(titleID: str):
                     titlePoster=title_data["IMAGE"],
                     startYear=str(title_data["Start_Year"]),
                     endYear=str(title_data["End_Year"]) if title_data["End_Year"] else None,
-<<<<<<< HEAD
-                    genres=[GenreTitle(**g) for g in genres_data],
-=======
                     genres=[GenreTitle(**g) for g in genres_data], # Due to this format I needed to change the names of the keys when returned by queries
->>>>>>> 9551302 (Changes to back-end:)
                     titleAkas=[AkaTitle(**a) for a in akas_data],
                     principals=[PrincipalsObject(**p) for p in principals_data],
                     rating=RatingObject(avRating=title_data["Average_Rating"], nVotes=title_data["Votes"])
                 )
 
-<<<<<<< HEAD
-                return title_object
-=======
                 print(title_object)
 
                 return title_object
             
     except HTTPException as http_ex:
         raise http_ex
->>>>>>> 9551302 (Changes to back-end:)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -146,13 +104,6 @@ async def search_titles(query: str):
     try:
         async with await get_database_connection() as db_connection:
             async with db_connection.cursor(aiomysql.DictCursor) as cursor:
-<<<<<<< HEAD
-                await cursor.execute("SELECT * FROM `Title` WHERE `Original_Title` LIKE %s", (f'%{query}%',))
-                titles = await cursor.fetchall()
-
-            if titles:
-                return titles
-=======
                 await cursor.execute(
                     "SELECT * FROM `Title` WHERE `Original_Title` LIKE %s",
                     (f'%{query}%',)
@@ -161,7 +112,6 @@ async def search_titles(query: str):
 
             if titles:
                 return [TitleObject(**title) for title in titles]
->>>>>>> 9551302 (Changes to back-end:)
             else:
                 raise HTTPException(status_code=404, detail="No titles found")
     except Exception as e:
@@ -169,11 +119,7 @@ async def search_titles(query: str):
 
 # Genre search query
 @router.get("/bygenre", response_model=List[TitleObject])
-<<<<<<< HEAD
-async def search_genre(query: str):
-=======
 async def search_genre(query: gqueryObject):
->>>>>>> 9551302 (Changes to back-end:)
     try:
         async with await get_database_connection() as db_connection:
             async with db_connection.cursor(aiomysql.DictCursor) as cursor:
@@ -181,11 +127,7 @@ async def search_genre(query: gqueryObject):
                                     FROM `Title` T 
                                     INNER JOIN `Title_Genre` TG ON T.`Title_ID` = TG.`Title_ID` 
                                     INNER JOIN `Genre` G ON TG.`Genre_ID` = G.`Genre_ID`
-<<<<<<< HEAD
-                                    WHERE G.`Genre` LIKE %s""", (f'%{query}%',))
-=======
                                     WHERE G.`Genre` LIKE %s""", (f'%{query.qgenre}%',))
->>>>>>> 9551302 (Changes to back-end:)
                 titles = await cursor.fetchall()
 
             if titles:
@@ -201,31 +143,6 @@ async def get_name_details(nameID: str):
     try:
         async with await get_database_connection() as db_connection:
             async with db_connection.cursor(aiomysql.DictCursor) as cursor:
-<<<<<<< HEAD
-                await cursor.execute("""SELECT * FROM `Person` WHERE `Name` = %s""", (nameID,))
-                names = await cursor.fetchall()
-    
-        if names:
-            return names
-        else:
-            raise HTTPException(status_code=404, detail="No people found")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-# Search by name
-@router.get("\searchname", response_model=List[NameObject])
-async def searchname(query : str):
-    try:
-        async with await get_database_connection() as db_connection:
-            async with db_connection.cursor(aiomysql.DictCursor) as cursor:
-                await cursor.execute("""SELECT `Name` FROM `Person` LIKE %s""", (f'%{query}%',))
-                names = await cursor.fetchall()
-            
-        if names:
-            return names
-        else:
-            raise HTTPException(status_code=404, detail="No people found")
-=======
                 await cursor.execute("""SELECT `Name_ID`, `Name`, `Image`, `Birth_Year` as birthYr, `Death_Year` as deathYr 
                                         FROM `Person` WHERE `Name_ID` = %s""", (nameID,))
                 names = await cursor.fetchone()
@@ -286,13 +203,10 @@ async def search_name(query: str):
             result.append(name_object)
 
         return result
->>>>>>> 9551302 (Changes to back-end:)
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-<<<<<<< HEAD
-=======
 # Admin healthcheck
 @router.get("/admin/healthcheck")
 async def admin_health_check(username: str = Depends(get_current_admin_user)):
@@ -317,7 +231,6 @@ async def initiate_restore(username: str = Depends(get_current_admin_user)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
   
->>>>>>> 9551302 (Changes to back-end:)
 '''
 # endpoint 4
 @router.post("/admin/upload/namebasics")
