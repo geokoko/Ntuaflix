@@ -1,7 +1,15 @@
+<<<<<<< HEAD
 from fastapi import APIRouter, HTTPException, File, UploadFile
 from typing import List
 from ..models import TitleObject, NameObject, AkaTitle, PrincipalsObject, RatingObject, GenreTitle, gqueryObject, nqueryObject, tqueryObject
 from ..database import get_database_connection
+=======
+from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
+from typing import List
+from ..models import TitleObject, NameObject, AkaTitle, PrincipalsObject, RatingObject, GenreTitle, gqueryObject
+from ..database import get_database_connection, check_connection, create_backup, restore, pick_backup
+from ..utils.security import get_current_admin_user
+>>>>>>> 9551302 (Changes to back-end:)
 import aiomysql
 
 router = APIRouter()
@@ -46,6 +54,7 @@ async def get_title_details(titleID: str):
                 if not title_data:
                     raise HTTPException(status_code=404, detail="Title not found")
 
+<<<<<<< HEAD
                 await cursor.execute("""SELECT G.`Genre` 
                                         FROM `Title` T
                                         INNER JOIN `Title_Genre` tg ON T.`Title_ID` = tg.`Title_ID`
@@ -70,6 +79,36 @@ async def get_title_details(titleID: str):
                                         );""", (titleID,))
                 principals_data = await cursor.fetchall()
 
+=======
+                await cursor.execute("""SELECT G.`Genre` as `genreTitle`
+                                        FROM `Title` T
+                                        INNER JOIN `Title_Genre` tg ON T.`Title_ID` = tg.`Title_FK`
+                                        INNER JOIN `Genre` G ON tg.`Genre_FK` = G.`ID`
+                                        WHERE T.`Title_ID` = %s;""", (titleID,))
+                genres_data = await cursor.fetchall()
+
+                print(genres_data)
+                
+                await cursor.execute("""SELECT alt.`Title_AKA` as `akatitle`, alt.`Region` as `regionAbbrev`
+                                        FROM `Title` T
+                                        INNER JOIN `Alt_Title` alt ON T.`Title_ID` = alt.`Title_FK`
+                                        WHERE T .`Title_ID` = %s;""", (titleID,))
+                akas_data = await cursor.fetchall()
+
+                print(akas_data)
+
+                await cursor.execute("""SELECT p.`Name_ID` as `nameID`, p.`Name` as `name`, pi.`Job_Category` as `category`
+                                        FROM `Person` p
+                                        INNER JOIN `Participates_In` pi ON p.`ID` = pi.`Name_FK`
+                                        WHERE p.`ID` IN (
+                                            SELECT pi2.`Name_FK`
+                                            FROM `Participates_In` pi2
+                                            WHERE pi2.`Title_FK` = %s);""", (titleID,))
+                principals_data = await cursor.fetchall()
+
+                print(principals_data)
+
+>>>>>>> 9551302 (Changes to back-end:)
                 title_object = TitleObject(
                     titleID=title_data["Title_ID"],
                     type=title_data["Type"],
@@ -77,13 +116,26 @@ async def get_title_details(titleID: str):
                     titlePoster=title_data["IMAGE"],
                     startYear=str(title_data["Start_Year"]),
                     endYear=str(title_data["End_Year"]) if title_data["End_Year"] else None,
+<<<<<<< HEAD
                     genres=[GenreTitle(**g) for g in genres_data],
+=======
+                    genres=[GenreTitle(**g) for g in genres_data], # Due to this format I needed to change the names of the keys when returned by queries
+>>>>>>> 9551302 (Changes to back-end:)
                     titleAkas=[AkaTitle(**a) for a in akas_data],
                     principals=[PrincipalsObject(**p) for p in principals_data],
                     rating=RatingObject(avRating=title_data["Average_Rating"], nVotes=title_data["Votes"])
                 )
 
+<<<<<<< HEAD
                 return title_object
+=======
+                print(title_object)
+
+                return title_object
+            
+    except HTTPException as http_ex:
+        raise http_ex
+>>>>>>> 9551302 (Changes to back-end:)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -94,11 +146,22 @@ async def search_titles(query: str):
     try:
         async with await get_database_connection() as db_connection:
             async with db_connection.cursor(aiomysql.DictCursor) as cursor:
+<<<<<<< HEAD
                 await cursor.execute("SELECT * FROM `Title` WHERE `Original_Title` LIKE %s", (f'%{query}%',))
                 titles = await cursor.fetchall()
 
             if titles:
                 return titles
+=======
+                await cursor.execute(
+                    "SELECT * FROM `Title` WHERE `Original_Title` LIKE %s",
+                    (f'%{query}%',)
+                )
+                titles = await cursor.fetchall()
+
+            if titles:
+                return [TitleObject(**title) for title in titles]
+>>>>>>> 9551302 (Changes to back-end:)
             else:
                 raise HTTPException(status_code=404, detail="No titles found")
     except Exception as e:
@@ -106,7 +169,11 @@ async def search_titles(query: str):
 
 # Genre search query
 @router.get("/bygenre", response_model=List[TitleObject])
+<<<<<<< HEAD
 async def search_genre(query: str):
+=======
+async def search_genre(query: gqueryObject):
+>>>>>>> 9551302 (Changes to back-end:)
     try:
         async with await get_database_connection() as db_connection:
             async with db_connection.cursor(aiomysql.DictCursor) as cursor:
@@ -114,7 +181,11 @@ async def search_genre(query: str):
                                     FROM `Title` T 
                                     INNER JOIN `Title_Genre` TG ON T.`Title_ID` = TG.`Title_ID` 
                                     INNER JOIN `Genre` G ON TG.`Genre_ID` = G.`Genre_ID`
+<<<<<<< HEAD
                                     WHERE G.`Genre` LIKE %s""", (f'%{query}%',))
+=======
+                                    WHERE G.`Genre` LIKE %s""", (f'%{query.qgenre}%',))
+>>>>>>> 9551302 (Changes to back-end:)
                 titles = await cursor.fetchall()
 
             if titles:
@@ -130,6 +201,7 @@ async def get_name_details(nameID: str):
     try:
         async with await get_database_connection() as db_connection:
             async with db_connection.cursor(aiomysql.DictCursor) as cursor:
+<<<<<<< HEAD
                 await cursor.execute("""SELECT * FROM `Person` WHERE `Name` = %s""", (nameID,))
                 names = await cursor.fetchall()
     
@@ -153,10 +225,99 @@ async def searchname(query : str):
             return names
         else:
             raise HTTPException(status_code=404, detail="No people found")
+=======
+                await cursor.execute("""SELECT `Name_ID`, `Name`, `Image`, `Birth_Year` as birthYr, `Death_Year` as deathYr 
+                                        FROM `Person` WHERE `Name_ID` = %s""", (nameID,))
+                names = await cursor.fetchone()
+                if not names:
+                    raise HTTPException(status_code=404, detail="Person not found")
+                
+                await cursor.execute("""SELECT DISTINCT Job_Category
+                                        FROM `Participates_In`
+                                        WHERE `Name_FK` = %s""", (names['Name_ID'],))
+                professions_data = await cursor.fetchall()
+                professions = [p['Job_Category'] for p in professions_data]
+
+                name_object = NameObject(
+                    nameID=names["Name_ID"],
+                    name=names["Name"],
+                    namePoster=names["Image"],
+                    birthYr=str(names["birthYr"]),
+                    deathYr=str(names["deathYr"]) if names["deathYr"] else None,
+                    profession=", ".join(professions)
+                )
+                
+                return name_object
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Search by name
+@router.get("/searchname", response_model=List[NameObject])
+async def search_name(query: str):
+    try:
+        async with await get_database_connection() as db_connection:
+            async with db_connection.cursor(aiomysql.DictCursor) as cursor:
+                await cursor.execute("""SELECT `Name_ID`, `Name`, `Image`, `Birth_Year`, `Death_Year`
+                                        FROM `Person` 
+                                        WHERE `Name` LIKE %s""", (f'%{query}%',))
+                names = await cursor.fetchall()
+            
+        if not names:
+            raise HTTPException(status_code=404, detail="No people found")
+
+        result = []
+        for name in names:
+            await cursor.execute("""SELECT DISTINCT `Job_Category`
+                                    FROM `Participates_In`
+                                    WHERE `Name_FK` = %s""", (name['Name_ID'],))
+            professions_data = await cursor.fetchall()
+            professions = [p['Job_Category'] for p in professions_data]
+
+            name_object = NameObject(
+                nameID=name["Name_ID"],
+                name=name["Name"],
+                namePoster=name["Image"],
+                birthYr=str(name["Birth_Year"]),
+                deathYr=str(name["Death_Year"]) if name["Death_Year"] else None,
+                profession=", ".join(professions)
+            )
+            result.append(name_object)
+
+        return result
+>>>>>>> 9551302 (Changes to back-end:)
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
+<<<<<<< HEAD
+=======
+# Admin healthcheck
+@router.get("/admin/healthcheck")
+async def admin_health_check(username: str = Depends(get_current_admin_user)):
+    try:
+        return await check_connection()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Admin create backup
+@router.post("/admin/backup")
+async def initiate_backup(username: str = Depends(get_current_admin_user)):
+    try:
+        return await create_backup()    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Admin restore database   
+@router.post("admin/resetall")
+async def initiate_restore(username: str = Depends(get_current_admin_user)):
+    try:
+        return await restore()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+  
+>>>>>>> 9551302 (Changes to back-end:)
 '''
 # endpoint 4
 @router.post("/admin/upload/namebasics")
@@ -285,7 +446,33 @@ def upload_titleepisode(file: UploadFile = File(...)):
                 title_id1 = fields[1]  # Το πεδίο Title_ID1
                 title_id2 = fields[0]  # Το πεδίο Title_ID2
                 season_number = fields[2]  # Το πεδίο Season
+<<<<<<< HEAD
                 episode_number = fields[3]  # Το πεδίο Episode_Num
+=======
+                episode_number = fields[3]  # Τοcontents = file.file.read().decode("utf-8")
+
+        for line in contents.split("\n"):
+            # Χωρίζουμε τη γραμμή σε πεδία
+            fields = line.split("\t")
+
+            # Εάν υπάρχουν αρκετά πεδία, τα προσθέτουμε στον πίνακα (Person)
+            if len(fields) >= 2:
+                name_id = fields[0]
+                name = fields[1]
+                birth_year = fields[2] if fields[2] != "\\N" else None
+                death_year = fields[3] if fields[3] != "\\N" else None
+                primary_profession = fields[4]
+                known_for_titles = fields[5]
+                img_url_asset = fields[6]
+
+                # Υπόλοιπη λογική για αποθήκευση των δεδομένων στον πίνακα Person
+                db_connection = get_database_connection()
+                cursor = db_connection.cursor()
+
+                # Εισάγουμε στον πίνακα `Person`
+                query = "INSERT INTO `Person` (`Name_ID`, `Name`, `Birth_Year`, `Death_Year`, `Image`) VALUES (%s, %s, %s, %s, %s)"
+                cursor.execute(query, (name_id, name, birth πεδίο Episode_Num
+>>>>>>> 9551302 (Changes to back-end:)
 
                 # Ελέγχουμε αν υπάρχει το parentTconst στον πίνακα Title
                 cursor.execute("SELECT * FROM `Title` WHERE `Title_ID` = %s", (title_id1,))
