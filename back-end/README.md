@@ -1,11 +1,17 @@
 # Back-end
 
-Ενδεικτικά περιεχόμενα:
+To connect to the database, create a .env file in the project directory, adding values to the variables below according to your credentials.
 
-- Πηγαίος κώδικας εφαρμογής για εισαγωγή, διαχείριση και
-  πρόσβαση σε δεδομένα (backend).
-- Database dump (sql ή json)
-- Back-end functional tests.
-- Back-end unit tests.
-- RESTful API.
+- DB_HOST
+- DB_NAME
+- DB_USER
+- DB_PASSWD
+
+Fill in your credentials according to your database settings.
+
+For admin authentication when trying to access the admin routes, add to your .env file:
+- ADMIN_USERNAME
+- ADMIN_PASSWORD
+
+Fill in your credentials and use them everytime you need to gain admin access at the website.
 
