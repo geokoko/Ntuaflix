@@ -1,28 +1,15 @@
 import os
-<<<<<<< HEAD
-import aiomysql
-from dotenv import load_dotenv
-=======
 import asyncio
 from datetime import datetime
 import aiomysql
 from dotenv import load_dotenv
 from pathlib import Path
 import re
->>>>>>> 9551302 (Changes to back-end:)
 
 load_dotenv()
 
 db_pool = None
 
-<<<<<<< HEAD
-async def check_connection():
-    async with get_database_connection() as conn:
-        async with conn.cursor() as cursor:
-            await cursor.execute("SELECT 1")
-            await cursor.fetchone()
-            return "Successfully connected to the database"
-=======
 # Creates a Backup of the most recent database version
 async def create_backup():
     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
@@ -82,7 +69,6 @@ async def check_connection():
         return {"status": "success"}
     except Exception as e:
         return {"status": "failed", "dataconnection": str(e)}
->>>>>>> 9551302 (Changes to back-end:)
 
 async def create_db_pool():
     global db_pool

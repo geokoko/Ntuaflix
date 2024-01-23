@@ -1,24 +1,12 @@
 from pydantic import BaseModel
 from typing import List, Optional
 
-<<<<<<< HEAD
-class tqueryObject(BaseModel):
-    titlePart: str
-
-=======
->>>>>>> 9551302 (Changes to back-end:)
 class gqueryObject(BaseModel):
     qgenre: str
     minrating: Optional[str]
     yrFrom: Optional[str]
     yrTo: Optional[str]
 
-<<<<<<< HEAD
-class nqueryObject(BaseModel):
-    namePart: str
-
-=======
->>>>>>> 9551302 (Changes to back-end:)
 class GenreTitle(BaseModel):
     genreTitle: Optional[str]
 
