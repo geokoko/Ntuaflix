@@ -31,7 +31,7 @@ class TitleObject(BaseModel):
     titleID: str
     type: str
     originalTitle: str
-    titlePoster: str
+    titlePoster: Optional[str]
     startYear: str
     endYear: Optional[str] = None
     genres: List[GenreTitle]

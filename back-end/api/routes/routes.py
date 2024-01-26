@@ -46,20 +46,23 @@ async def get_title_details(titleID: str):
                 title_data = await cursor.fetchone()
                 if not title_data:
                     raise HTTPException(status_code=404, detail="Title not found")
+                
+                print(title_data)
+                primary_key = title_data["ID"]
 
                 await cursor.execute("""SELECT G.`Genre` as `genreTitle`
                                         FROM `Title` T
-                                        INNER JOIN `Title_Genre` tg ON T.`Title_ID` = tg.`Title_FK`
+                                        INNER JOIN `Title_Genre` tg ON T.`ID` = tg.`Title_FK`
                                         INNER JOIN `Genre` G ON tg.`Genre_FK` = G.`ID`
-                                        WHERE T.`Title_ID` = %s;""", (titleID,))
+                                        WHERE T.`ID` = %s;""", (primary_key,))
                 genres_data = await cursor.fetchall()
 
                 print(genres_data)
                 
                 await cursor.execute("""SELECT alt.`Title_AKA` as `akatitle`, alt.`Region` as `regionAbbrev`
                                         FROM `Title` T
-                                        INNER JOIN `Alt_Title` alt ON T.`Title_ID` = alt.`Title_FK`
-                                        WHERE T .`Title_ID` = %s;""", (titleID,))
+                                        INNER JOIN `Alt_Title` alt ON T.`ID` = alt.`Title_FK`
+                                        WHERE T .`ID` = %s;""", (primary_key,))
                 akas_data = await cursor.fetchall()
 
                 print(akas_data)
@@ -70,7 +73,7 @@ async def get_title_details(titleID: str):
                                         WHERE p.`ID` IN (
                                             SELECT pi2.`Name_FK`
                                             FROM `Participates_In` pi2
-                                            WHERE pi2.`Title_FK` = %s);""", (titleID,))
+                                            WHERE pi2.`Title_FK` = %s);""", (primary_key,))
                 principals_data = await cursor.fetchall()
 
                 print(principals_data)
@@ -110,8 +113,56 @@ async def search_titles(query: str):
                 )
                 titles = await cursor.fetchall()
 
+                full_titles = []
+
+                for title_data in titles:
+                    primary_key = titles["ID"]
+
+                    await cursor.execute("""SELECT G.`Genre` as `genreTitle`
+                                        FROM `Title` T
+                                        INNER JOIN `Title_Genre` tg ON T.`ID` = tg.`Title_FK`
+                                        INNER JOIN `Genre` G ON tg.`Genre_FK` = G.`ID`
+                                        WHERE T.`ID` = %s;""", (primary_key,))
+                genres_data = await cursor.fetchall()
+
+                print(genres_data)
+                
+                await cursor.execute("""SELECT alt.`Title_AKA` as `akatitle`, alt.`Region` as `regionAbbrev`
+                                        FROM `Title` T
+                                        INNER JOIN `Alt_Title` alt ON T.`ID` = alt.`Title_FK`
+                                        WHERE T .`ID` = %s;""", (primary_key,))
+                akas_data = await cursor.fetchall()
+
+                print(akas_data)
+
+                await cursor.execute("""SELECT p.`Name_ID` as `nameID`, p.`Name` as `name`, pi.`Job_Category` as `category`
+                                        FROM `Person` p
+                                        INNER JOIN `Participates_In` pi ON p.`ID` = pi.`Name_FK`
+                                        WHERE p.`ID` IN (
+                                            SELECT pi2.`Name_FK`
+                                            FROM `Participates_In` pi2
+                                            WHERE pi2.`Title_FK` = %s);""", (primary_key,))
+                principals_data = await cursor.fetchall()
+
+                print(principals_data)
+
+                title_object = TitleObject(
+                    titleID=title_data["Title_ID"],
+                    type=title_data["Type"],
+                    originalTitle=title_data["Original_Title"],
+                    titlePoster=title_data["IMAGE"],
+                    startYear=str(title_data["Start_Year"]),
+                    endYear=str(title_data["End_Year"]) if title_data["End_Year"] else None,
+                    genres=[GenreTitle(**g) for g in genres_data], # Due to this format I needed to change the names of the keys when returned by queries
+                    titleAkas=[AkaTitle(**a) for a in akas_data],
+                    principals=[PrincipalsObject(**p) for p in principals_data],
+                    rating=RatingObject(avRating=title_data["Average_Rating"], nVotes=title_data["Votes"])
+                )
+
+                full_titles.append(title_object)
+
             if titles:
-                return [TitleObject(**title) for title in titles]
+                return full_titles
             else:
                 raise HTTPException(status_code=404, detail="No titles found")
     except Exception as e:
@@ -143,18 +194,26 @@ async def get_name_details(nameID: str):
     try:
         async with await get_database_connection() as db_connection:
             async with db_connection.cursor(aiomysql.DictCursor) as cursor:
-                await cursor.execute("""SELECT `Name_ID`, `Name`, `Image`, `Birth_Year` as birthYr, `Death_Year` as deathYr 
-                                        FROM `Person` WHERE `Name_ID` = %s""", (nameID,))
+                await cursor.execute("""SELECT `ID`, `Name_ID`, `Name`, `Image`, `Birth_Year` as birthYr, `Death_Year` as deathYr 
+                                        FROM `Person` 
+                                        WHERE `Name_ID` = %s""", (nameID,))
                 names = await cursor.fetchone()
                 if not names:
                     raise HTTPException(status_code=404, detail="Person not found")
                 
-                await cursor.execute("""SELECT DISTINCT Job_Category
+                await cursor.execute("""SELECT DISTINCT `Job_Category`
                                         FROM `Participates_In`
                                         WHERE `Name_FK` = %s""", (names['Name_ID'],))
                 professions_data = await cursor.fetchall()
                 professions = [p['Job_Category'] for p in professions_data]
 
+                await cursor.execute("""SELECT T.`Title_ID`
+                                        FROM `Person` p
+                                        INNER JOIN `Participates_In` pi ON p.`ID`= pi.`Name_FK`
+                                        INNER JOIN `Title` t ON pi.`Title_FK`= t.`ID`
+                                        WHERE p.`ID` = %s""", (names["ID"],))
+                name_titles_data = await cursor.fetchall()
+                
                 name_object = NameObject(
                     nameID=names["Name_ID"],
                     name=names["Name"],
