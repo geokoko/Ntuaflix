@@ -1,5 +1,5 @@
 #!/bin/bash
-python cli.py "$@"
+python3 cli.py "$@"
 
 #this code exists so that we can run the CLI as requested
 # which is:

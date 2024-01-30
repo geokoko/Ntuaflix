@@ -62,9 +62,9 @@ async def restore():
 
 async def check_connection():
     try:
-        async with get_database_connection() as conn:
+        async with await get_database_connection() as conn:
             async with conn.cursor() as cursor:
-                await cursor.execute("SELECT 1")
+                await cursor.execute("SELECT 1;")
                 await cursor.fetchone()
         return {"status": "success"}
     except Exception as e:

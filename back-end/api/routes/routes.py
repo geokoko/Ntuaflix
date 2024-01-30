@@ -4,20 +4,9 @@ from ..models import TitleObject, NameObject, AkaTitle, PrincipalsObject, Rating
 from ..database import get_database_connection, check_connection, create_backup, restore, pick_backup
 from ..utils.security import get_current_admin_user
 import aiomysql
+from typing import Optional
 
 router = APIRouter()
-
-@router.get("/test")
-async def test():
-    async with await get_database_connection() as db_connection:
-        async with db_connection.cursor(aiomysql.DictCursor) as cursor:
-            await cursor.execute("SELECT * FROM `Profession`;")
-            profession = await cursor.fetchall()
-
-        if profession:
-            return profession
-    
-    return {'this': 'that'}
 
 # Index
 @router.get("/")
@@ -116,7 +105,7 @@ async def search_titles(query: str):
                 full_titles = []
 
                 for title_data in titles:
-                    primary_key = titles["ID"]
+                    primary_key = title_data["ID"]
 
                     await cursor.execute("""SELECT G.`Genre` as `genreTitle`
                                             FROM `Title` T
@@ -170,21 +159,72 @@ async def search_titles(query: str):
 
 # Genre search query
 @router.get("/bygenre", response_model=List[TitleObject])
-async def search_genre(query: gqueryObject):
+async def search_genre(qgenre: str, minrating: Optional[str] = None, yrFrom: Optional[str] = None, yrTo: Optional[str] = None):
     try:
         async with await get_database_connection() as db_connection:
             async with db_connection.cursor(aiomysql.DictCursor) as cursor:
-                await cursor.execute("""SELECT T.`Title_ID`, T.`Original_Title` 
-                                    FROM `Title` T 
-                                    INNER JOIN `Title_Genre` TG ON T.`Title_ID` = TG.`Title_ID` 
-                                    INNER JOIN `Genre` G ON TG.`Genre_ID` = G.`Genre_ID`
-                                    WHERE G.`Genre` LIKE %s""", (f'%{query.qgenre}%',))
-                titles = await cursor.fetchall()
+                query_parts = [
+                    "SELECT T.`ID`, T.`Type`, T.`IMAGE`, T.`Start_Year`, T.`End_Year`, T.`Votes`, T.Title_ID, T.Original_Title, T.Average_Rating, GROUP_CONCAT(G.Genre) AS Genres",
+                    "FROM `Title` T",
+                    "INNER JOIN `Title_Genre` TG ON T.`ID` = TG.`Title_FK`",
+                    "INNER JOIN `Genre` G ON TG.`Genre_FK` = G.`ID`",
+                    "WHERE G.`Genre` LIKE %s AND T.`Average_Rating` >= %s"
+                ]
+                params = [f'%{qgenre}%', minrating]
 
-            if titles:
-                return titles
-            else:
-                raise HTTPException(status_code=404, detail="No titles found")
+                if yrFrom is not None and yrTo is None:
+                    query_parts.append("AND T.`Start_Year` >= %s")
+                    params.append(yrFrom)
+                if yrTo is not None and yrFrom is None:
+                    query_parts.append("AND T.`Start_Year` <= %s")
+                    params.append(yrTo)
+                if yrTo is not None and yrFrom is not None:
+                    query_parts.append("AND T. `Start_Year` BETWEEN %s AND %s")
+                    params.extend([yrFrom, yrTo])
+
+                final_query = " ".join(query_parts)
+                await cursor.execute(final_query, params)
+                titles = await cursor.fetchall()
+                if not titles:
+                    raise HTTPException(status_code=404, detail="No titles found")
+                
+                title_objects = []
+
+                for title in titles:
+                    primary_key = title["ID"]
+
+                    await cursor.execute("""SELECT alt.`Title_AKA` as `akatitle`, alt.`Region` as `regionAbbrev`
+                                            FROM `Title` T
+                                            INNER JOIN `Alt_Title` alt ON T.`ID` = alt.`Title_FK`
+                                            WHERE T .`ID` = %s;""", (primary_key,))
+                    akas_data = await cursor.fetchall()
+
+                    await cursor.execute("""SELECT p.`Name_ID` as `nameID`, p.`Name` as `name`, pi.`Job_Category` as `category`
+                                            FROM `Person` p
+                                            INNER JOIN `Participates_In` pi ON p.`ID` = pi.`Name_FK`
+                                            WHERE p.`ID` IN (
+                                                SELECT pi2.`Name_FK`
+                                                FROM `Participates_In` pi2
+                                                WHERE pi2.`Title_FK` = %s);""", (primary_key,))
+                    principals_data = await cursor.fetchall()
+
+                    title_object = TitleObject(
+                        titleID=title["Title_ID"],
+                        type=title["Type"],
+                        originalTitle=title["Original_Title"],
+                        titlePoster=title["IMAGE"],
+                        startYear=str(title["Start_Year"]),
+                        endYear=str(title["End_Year"]) if title["End_Year"] else None,
+                        genres =[{"genre": genre} for genre in title["Genres"].split(',')] if title["Genres"] else [],
+                        titleAkas=[AkaTitle(**a) for a in akas_data],
+                        principals=[PrincipalsObject(**p) for p in principals_data],
+                        rating=RatingObject(avRating=title["Average_Rating"], nVotes=title["Votes"])
+                    )
+
+                    title_objects.append(title_object)
+                
+                return title_objects
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -283,7 +323,7 @@ async def initiate_backup(username: str = Depends(get_current_admin_user)):
         raise HTTPException(status_code=500, detail=str(e))
 
 # Admin restore database   
-@router.post("admin/resetall")
+@router.post("/admin/resetall")
 async def initiate_restore(username: str = Depends(get_current_admin_user)):
     try:
         return await restore()

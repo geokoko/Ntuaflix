@@ -3,8 +3,8 @@ import argparse, requests, os
 #Using try-catch for error handlind
 def healthcheck(args):
     try:
-        #response = requests.get("/admin/healthcheck")
-        #handle_response(response, args.format)
+        response = requests.get("http://127.0.0.1:8000/admin/healthcheck")
+        handle_response(response, args.format)
         print("Admin performs heathcheck")
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
