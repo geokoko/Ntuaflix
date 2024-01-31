@@ -4,7 +4,7 @@ CREATE DATABASE tl;
 USE tl;
 
 -- Drop tables if they exist
-DROP TABLE IF EXISTS `Alt_Title`, `Is_Episode_Of`, `Participates_In`, `Title_Genre`, `Person`, `Genre`, `Title`;
+DROP TABLE IF EXISTS `Alt_Title`, `Is_Episode_Of`, `Participates_In`, `Title_Genre`, `Person`, `Genre`, `Title`, `Profession`, `Profession_Person`;
 
 -- Create table `Title`
 CREATE TABLE `Title` (
@@ -30,8 +30,7 @@ CREATE TABLE `Alt_Title` (
   `Title_AKA` varchar(255) DEFAULT NULL,
   `Region` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`ID`),
-  FOREIGN KEY (`Title_FK`) REFERENCES `Title` (`ID`) ON DELETE CASCADE,
-  UNIQUE KEY `unique_alt_title` (`Title_FK`, `Title_AKA`)
+  FOREIGN KEY (`Title_FK`) REFERENCES `Title` (`ID`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Create table `Genre`
@@ -89,6 +88,22 @@ CREATE TABLE `Title_Genre` (
   FOREIGN KEY (`Genre_FK`) REFERENCES `Genre` (`ID`) ON DELETE CASCADE,
   UNIQUE KEY `unique_title_genre` (`Title_FK`, `Genre_FK`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Create table `Profession`
+CREATE TABLE `Profession` (
+  `ID` int NOT NULL AUTO_INCREMENT,
+  `Profession` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Create table `Profession_Person`
+CREATE TABLE `Profession_Person` (
+  `ID` int NOT NULL AUTO_INCREMENT,
+  `Profession_FK` int NOT NULL,
+  `Name_FK` int NOT NULL,
+  FOREIGN KEY (`Profession_FK`) REFERENCES `Profession` (`ID`) ON DELETE CASCADE,
+  FOREIGN KEY (`Name_FK`) REFERENCES `Person` (`ID`) ON DELETE CASCADE
+)ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Create indexes for non-key columns
 CREATE INDEX idx_title_id ON `Title` (`Title_ID`);
