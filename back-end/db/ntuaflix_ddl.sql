@@ -101,6 +101,7 @@ CREATE TABLE `Profession_Person` (
   `ID` int NOT NULL AUTO_INCREMENT,
   `Profession_FK` int NOT NULL,
   `Name_FK` int NOT NULL,
+  PRIMARY KEY (`ID`),
   FOREIGN KEY (`Profession_FK`) REFERENCES `Profession` (`ID`) ON DELETE CASCADE,
   FOREIGN KEY (`Name_FK`) REFERENCES `Person` (`ID`) ON DELETE CASCADE
 )ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
