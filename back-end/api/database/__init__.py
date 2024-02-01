@@ -5,35 +5,35 @@ import aiomysql
 from dotenv import load_dotenv
 from pathlib import Path
 import re
+from fastapi import HTTPException
 
 load_dotenv()
 
 db_pool = None
+BACKUP_DIR = Path(__file__).resolve().parent.parent.parent / 'db' / 'backups'
 
 # Creates a Backup of the most recent database version
 async def create_backup():
     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-    backup_file = f"backup_{timestamp}.sql"
+    backup_file = BACKUP_DIR / f"backup_{timestamp}.sql"
     command = f"mysqldump -u {os.environ.get('DB_USER')} -p{os.environ.get('DB_PASSWD')} {os.environ.get('DB_NAME')} > {backup_file}"
 
     try:
         proc = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
         stdout, stderr = await proc.communicate()
 
-        if proc.returncode == 0:
-            return {"status": "success", "backup_file": backup_file}
-        else:
-            return {"status": "failed", "error": stderr.decode()}
+        return {"status": "success", "backup_file": backup_file}
+        
+    except proc.CalledProcessError as e:
+        return {"status": "failed", "error": stderr.decode()}
         
     except Exception as e:
         return {"status": "failed", "error": str(e)}
 
 # Picks the backup that was created first
 async def pick_backup():
-    backup_dir = Path(__file__).resolve().parent.parent / 'db' / 'backups'
-    
     try:
-        backups = [f for f in os.listdir(backup_dir) if re.match(r'backup_\d{4}-\d{2}-\d{2}_\d{6}\.sql', f)]
+        backups = [BACKUP_DIR/f for f in os.listdir(BACKUP_DIR) if re.match(r'backup_\d{4}-\d{2}-\d{2}_\d{6}\.sql', f)]
         return {"available_backups": backups}
     except Exception as e:
         return {"available_backups": None, "error": str(e)}
@@ -42,10 +42,12 @@ async def pick_backup():
 async def restore():
     choices = await pick_backup()
     if not choices["available_backups"][0]:
-        return {"status": "failed", "error": "No backup files available"}
+        raise HTTPException(status_code=404, detail="No backup files available")
     
     choices["available_backups"].sort()
     backup_file = choices["available_backups"][0]
+
+    print(backup_file)
 
     command = f"mysql -u {os.environ.get('DB_USER')} -p{os.environ.get('DB_PASSWD')} {os.environ.get('DB_NAME')} < {backup_file}"
 

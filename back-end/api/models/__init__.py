@@ -1,12 +1,6 @@
 from pydantic import BaseModel
 from typing import List, Optional
 
-class gqueryObject(BaseModel):
-    qgenre: str
-    minrating: Optional[str]
-    yrFrom: Optional[str]
-    yrTo: Optional[str]
-
 class GenreTitle(BaseModel):
     genreTitle: Optional[str]
 
@@ -25,7 +19,7 @@ class RatingObject(BaseModel):
 
 class NameTitleObject(BaseModel):
     titleID: str
-    category: str
+    category: List[str]
 
 class TitleObject(BaseModel):
     titleID: str
@@ -42,8 +36,8 @@ class TitleObject(BaseModel):
 class NameObject(BaseModel):
     nameID: str
     name: str
-    namePoster: str
+    namePoster: Optional[str]
     birthYr: str
-    deathYr: str
-    profession: str
-    nameTitles: List[NameTitleObject]
+    deathYr: Optional[str]
+    profession: Optional[List[str]]
+    nameTitles: Optional[List[NameTitleObject]]

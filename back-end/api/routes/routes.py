@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
 from typing import List
-from ..models import TitleObject, NameObject, AkaTitle, PrincipalsObject, RatingObject, GenreTitle, gqueryObject
+from ..models import TitleObject, NameObject, AkaTitle, PrincipalsObject, RatingObject, GenreTitle, NameTitleObject
 from ..database import get_database_connection, check_connection, create_backup, restore, pick_backup
 from ..utils.security import get_current_admin_user
 import aiomysql
@@ -159,12 +159,12 @@ async def search_titles(query: str):
 
 # Genre search query
 @router.get("/bygenre", response_model=List[TitleObject])
-async def search_genre(qgenre: str, minrating: Optional[str] = None, yrFrom: Optional[str] = None, yrTo: Optional[str] = None):
+async def search_genre(qgenre: str, minrating: Optional[str] = 0, yrFrom: Optional[str] = None, yrTo: Optional[str] = None):
     try:
         async with await get_database_connection() as db_connection:
             async with db_connection.cursor(aiomysql.DictCursor) as cursor:
                 query_parts = [
-                    "SELECT T.`ID`, T.`Type`, T.`IMAGE`, T.`Start_Year`, T.`End_Year`, T.`Votes`, T.Title_ID, T.Original_Title, T.Average_Rating, GROUP_CONCAT(G.Genre) AS Genres",
+                    "SELECT T.`ID`, T.`Type`, T.`IMAGE`, T.`Start_Year`, T.`End_Year`, T.`Votes`, T.`Title_ID`, T.`Original_Title`, T.`Average_Rating`, GROUP_CONCAT(G.Genre) AS Genres",
                     "FROM `Title` T",
                     "INNER JOIN `Title_Genre` TG ON T.`ID` = TG.`Title_FK`",
                     "INNER JOIN `Genre` G ON TG.`Genre_FK` = G.`ID`",
@@ -182,6 +182,7 @@ async def search_genre(qgenre: str, minrating: Optional[str] = None, yrFrom: Opt
                     query_parts.append("AND T. `Start_Year` BETWEEN %s AND %s")
                     params.extend([yrFrom, yrTo])
 
+                query_parts.append("GROUP BY T.`ID`")
                 final_query = " ".join(query_parts)
                 await cursor.execute(final_query, params)
                 titles = await cursor.fetchall()
@@ -240,27 +241,46 @@ async def get_name_details(nameID: str):
                 names = await cursor.fetchone()
                 if not names:
                     raise HTTPException(status_code=404, detail="Person not found")
-                
-                await cursor.execute("""SELECT DISTINCT `Job_Category`
-                                        FROM `Participates_In`
-                                        WHERE `Name_FK` = %s""", (names['Name_ID'],))
-                professions_data = await cursor.fetchall()
-                professions = [p['Job_Category'] for p in professions_data]
 
-                await cursor.execute("""SELECT T.`Title_ID`
+                await cursor.execute("""SELECT T.`Title_ID`, T.`ID`
                                         FROM `Person` p
                                         INNER JOIN `Participates_In` pi ON p.`ID`= pi.`Name_FK`
-                                        INNER JOIN `Title` t ON pi.`Title_FK`= t.`ID`
+                                        INNER JOIN `Title` T ON pi.`Title_FK`= T.`ID`
                                         WHERE p.`ID` = %s""", (names["ID"],))
                 name_titles_data = await cursor.fetchall()
-                
+
+                name_title_objects = []
+
+                for title_data in name_titles_data:
+                    await cursor.execute("""SELECT DISTINCT pi.`Job_Category`
+                                            FROM `Title` T
+                                            INNER JOIN `Participates_In` pi ON T.`ID`= pi.`Title_FK`
+                                            WHERE pi.`Name_FK` = %s AND pi.`Title_FK` = %s""", (names["ID"], title_data["ID"]))
+                    categories_data = await cursor.fetchall()
+                    print(categories_data)
+
+                    nt_object = NameTitleObject(
+                        titleID = title_data["Title_ID"],
+                        category = [c["Job_Category"] for c in categories_data]
+                    )
+
+                    name_title_objects.append(nt_object)
+                    
+                '''await cursor.execute("""SELECT p.`Profession`
+                                            FROM `Profession` p
+                                            INNER JOIN `Profession_Person` pp ON p.`ID`= pp.`Profession_FK`
+                                            INNER JOIN `Person` pr ON pr.`ID`= p.`Name_FK`
+                                            WHERE pr.`ID` = %s""", (names["ID"]))
+                primary_profession = await cursor.fetchall()'''
+                    
                 name_object = NameObject(
                     nameID=names["Name_ID"],
                     name=names["Name"],
                     namePoster=names["Image"],
                     birthYr=str(names["birthYr"]),
                     deathYr=str(names["deathYr"]) if names["deathYr"] else None,
-                    profession=", ".join(professions)
+                    profession=None,
+                    nameTitles=name_title_objects
                 )
                 
                 return name_object
@@ -268,40 +288,65 @@ async def get_name_details(nameID: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
 # Search by name
 @router.get("/searchname", response_model=List[NameObject])
 async def search_name(query: str):
     try:
         async with await get_database_connection() as db_connection:
             async with db_connection.cursor(aiomysql.DictCursor) as cursor:
-                await cursor.execute("""SELECT `Name_ID`, `Name`, `Image`, `Birth_Year`, `Death_Year`
+                await cursor.execute("""SELECT `Name_ID`, `Name`, `Image`, `Birth_Year` as birthYr, `Death_Year` as deathYr, `ID`
                                         FROM `Person` 
                                         WHERE `Name` LIKE %s""", (f'%{query}%',))
                 names = await cursor.fetchall()
-            
-        if not names:
-            raise HTTPException(status_code=404, detail="No people found")
+                if not names:
+                    raise HTTPException(status_code=404, detail="No people found")
 
-        result = []
-        for name in names:
-            await cursor.execute("""SELECT DISTINCT `Job_Category`
-                                    FROM `Participates_In`
-                                    WHERE `Name_FK` = %s""", (name['Name_ID'],))
-            professions_data = await cursor.fetchall()
-            professions = [p['Job_Category'] for p in professions_data]
+                result = []
+                for name in names:
+                    await cursor.execute("""SELECT T.`Title_ID`, T.`ID`
+                                            FROM `Person` p
+                                            INNER JOIN `Participates_In` pi ON p.`ID`= pi.`Name_FK`
+                                            INNER JOIN `Title` T ON pi.`Title_FK`= T.`ID`
+                                            WHERE p.`ID` = %s""", (name["ID"],))
+                    name_titles_data = await cursor.fetchall()
 
-            name_object = NameObject(
-                nameID=name["Name_ID"],
-                name=name["Name"],
-                namePoster=name["Image"],
-                birthYr=str(name["Birth_Year"]),
-                deathYr=str(name["Death_Year"]) if name["Death_Year"] else None,
-                profession=", ".join(professions)
-            )
-            result.append(name_object)
+                    name_title_objects = []
 
-        return result
+                    for title_data in name_titles_data:
+                        await cursor.execute("""SELECT DISTINCT pi.`Job_Category`
+                                                FROM `Title` T
+                                                INNER JOIN `Participates_In` pi ON T.`ID`= pi.`Title_FK`
+                                                WHERE pi.`Name_FK` = %s AND pi.`Title_FK` = %s""", (name["ID"], title_data["ID"]))
+                        categories_data = await cursor.fetchall()
+                        print(categories_data)
+
+                        nt_object = NameTitleObject(
+                            titleID = title_data["Title_ID"],
+                            category = [c["Job_Category"] for c in categories_data]
+                        )
+
+                        name_title_objects.append(nt_object)
+                    
+                    '''await cursor.execute("""SELECT p.`Profession`
+                                            FROM `Profession` p
+                                            INNER JOIN `Profession_Person` pp ON p.`ID`= pp.`Profession_FK`
+                                            INNER JOIN `Person` pr ON pr.`ID`= p.`Name_FK`
+                                            WHERE pr.`ID` = %s""", (names["ID"]))
+                    primary_profession = await cursor.fetchall()'''
+                    
+                    name_object = NameObject(
+                        nameID=name["Name_ID"],
+                        name=name["Name"],
+                        namePoster=name["Image"],
+                        birthYr=str(name["birthYr"]),
+                        deathYr=str(name["deathYr"]) if name["deathYr"] else None,
+                        profession=None,
+                        nameTitles=name_title_objects
+                    )
+                    
+                    result.append(name_object)
+                
+                return result
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
