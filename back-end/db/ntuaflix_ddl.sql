@@ -9,12 +9,12 @@ DROP TABLE IF EXISTS `Alt_Title`, `Is_Episode_Of`, `Participates_In`, `Title_Gen
 -- Create table `Title`
 CREATE TABLE `Title` (
   `ID` int NOT NULL AUTO_INCREMENT,
-  `Title_ID` char(9) NOT NULL UNIQUE,
-  `Original_Title` varchar(225) NOT NULL,
-  `Type` varchar(225) NOT NULL,
+  `Title_ID` varchar(255) NOT NULL UNIQUE,
+  `Original_Title` varchar(255) NOT NULL,
+  `Type` varchar(255) NOT NULL,
   `IMAGE` varchar(255) DEFAULT NULL,
-  `Start_Year` year DEFAULT NULL,
-  `End_Year` year DEFAULT NULL,
+  `Start_Year` smallint DEFAULT NULL,
+  `End_Year` smallint DEFAULT NULL,
   `Runtime` int DEFAULT NULL,
   `isAdult` int DEFAULT NULL,
   `Votes` int DEFAULT NULL,
@@ -56,11 +56,11 @@ CREATE TABLE `Episode` (
 -- Create table `Person`
 CREATE TABLE `Person` (
   `ID` int NOT NULL AUTO_INCREMENT,
-  `Name_ID` char(9) NOT NULL UNIQUE,
+  `Name_ID` varchar(255) NOT NULL UNIQUE,
   `Name` varchar(255) DEFAULT NULL,
   `Image` varchar(255) DEFAULT NULL,
-  `Birth_Year` year DEFAULT NULL,
-  `Death_Year` year DEFAULT NULL,
+  `Birth_Year` smallint DEFAULT NULL,
+  `Death_Year` smallint DEFAULT NULL,
   PRIMARY KEY (`ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 

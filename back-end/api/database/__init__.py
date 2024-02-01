@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 import re
 from fastapi import HTTPException
+from sys import platform
 
 load_dotenv()
 
@@ -15,7 +16,7 @@ BACKUP_DIR = Path(__file__).resolve().parent.parent.parent / 'db' / 'backups'
 # Creates a Backup of the most recent database version
 async def create_backup():
     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-    backup_file = BACKUP_DIR / f"backup_{timestamp}.sql"
+    backup_file = os.path.join(BACKUP_DIR, f"backup_{timestamp}.sql")
     command = f"mysqldump -u {os.environ.get('DB_USER')} -p{os.environ.get('DB_PASSWD')} {os.environ.get('DB_NAME')} > {backup_file}"
 
     try:
