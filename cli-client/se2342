@@ -1,5 +1,10 @@
 #!/bin/bash
-python3 cli.py "$@"
+
+#ΓΙΑ ΕΣΑΣ AYTO ΒΓΑΛΤΕ TO ΑΠΟ COMMENT 
+#python3 cli.py "$@"
+
+#ΓΙΑ ΕΣΑΣ AYTO ΒΑΛΤΕ TO ΣΕ COMMENT 
+python cli.py "$@"
 
 #this code exists so that we can run the CLI as requested
 # which is:

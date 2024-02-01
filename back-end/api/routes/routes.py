@@ -353,7 +353,7 @@ async def search_name(query: str):
     
 # Admin healthcheck
 @router.get("/admin/healthcheck")
-async def admin_health_check(username: str = Depends(get_current_admin_user)):
+async def admin_health_check():
     try:
         return await check_connection()
     except Exception as e:
