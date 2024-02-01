@@ -48,7 +48,7 @@ async def get_title_details(titleID: str):
 
                 print(genres_data)
                 
-                await cursor.execute("""SELECT alt.`Title_AKA` as `akatitle`, alt.`Region` as `regionAbbrev`
+                await cursor.execute("""SELECT alt.`Title_AKA` as akaTitle, alt.`Region` as regionAbbrev
                                         FROM `Title` T
                                         INNER JOIN `Alt_Title` alt ON T.`ID` = alt.`Title_FK`
                                         WHERE T .`ID` = %s;""", (primary_key,))
@@ -116,7 +116,7 @@ async def search_titles(query: str):
 
                     print(genres_data)
                 
-                    await cursor.execute("""SELECT alt.`Title_AKA` as `akatitle`, alt.`Region` as `regionAbbrev`
+                    await cursor.execute("""SELECT alt.`Title_AKA` as akaTitle, alt.`Region` as regionAbbrev
                                             FROM `Title` T
                                             INNER JOIN `Alt_Title` alt ON T.`ID` = alt.`Title_FK`
                                             WHERE T .`ID` = %s;""", (primary_key,))
@@ -194,7 +194,7 @@ async def search_genre(qgenre: str, minrating: Optional[str] = 0, yrFrom: Option
                 for title in titles:
                     primary_key = title["ID"]
 
-                    await cursor.execute("""SELECT alt.`Title_AKA` as `akatitle`, alt.`Region` as `regionAbbrev`
+                    await cursor.execute("""SELECT alt.`Title_AKA` as akaTitle, alt.`Region` as regionAbbrev
                                             FROM `Title` T
                                             INNER JOIN `Alt_Title` alt ON T.`ID` = alt.`Title_FK`
                                             WHERE T .`ID` = %s;""", (primary_key,))
