@@ -32,7 +32,6 @@ For Windows PowerShell:
 ```bash
 $env:ADMIN_USERNAME="your_admin_username"
 ```
-
-To create and populate the database, simply run the notebook data_processing.ipynb.
+The database is created and populated automatically with the default data during app startup.
 To run the app, run: ``uvicorn api.main:app --reload --host 127.0.0.1 --port 9876`` from the /back-end directory.
 
