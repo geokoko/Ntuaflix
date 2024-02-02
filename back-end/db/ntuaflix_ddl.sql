@@ -43,13 +43,12 @@ CREATE TABLE `Genre` (
 -- Create table `Is_Episode_Of`
 CREATE TABLE `Episode` (
   `ID` int NOT NULL AUTO_INCREMENT,
-  `parentTconst` varchar(255) NOT NULL,
-  `Title_ID` int NOT NULL,
+  `Parent_Title_FK` varchar(255) NOT NULL,
+  `Title_FK` int NOT NULL,
   `Season` int DEFAULT NULL,
   `Episode_Num` int DEFAULT NULL,
   PRIMARY KEY (`ID`),
-  FOREIGN KEY (`Title_ID`) REFERENCES `Title` (`ID`) ON DELETE CASCADE,
-  UNIQUE KEY `unique_episode` (`parentTitle_ID`, `Title_ID`, `Season`, `Episode_Num`)
+  FOREIGN KEY (`Title_FK`) REFERENCES `Title` (`ID`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Create table `Person`
@@ -73,8 +72,7 @@ CREATE TABLE `Participates_In` (
   `Character` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`ID`),
   FOREIGN KEY (`Title_FK`) REFERENCES `Title` (`ID`) ON DELETE CASCADE,
-  FOREIGN KEY (`Name_FK`) REFERENCES `Person` (`ID`) ON DELETE CASCADE,
-  UNIQUE KEY `unique_participation` (`Title_FK`, `Name_FK`, `Job_Category`)
+  FOREIGN KEY (`Name_FK`) REFERENCES `Person` (`ID`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Create table `Title_Genre`
@@ -84,8 +82,7 @@ CREATE TABLE `Title_Genre` (
   `Genre_FK` int NOT NULL,
   PRIMARY KEY (`ID`),
   FOREIGN KEY (`Title_FK`) REFERENCES `Title` (`ID`) ON DELETE CASCADE,
-  FOREIGN KEY (`Genre_FK`) REFERENCES `Genre` (`ID`) ON DELETE CASCADE,
-  UNIQUE KEY `unique_title_genre` (`Title_FK`, `Genre_FK`)
+  FOREIGN KEY (`Genre_FK`) REFERENCES `Genre` (`ID`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Create table `Profession`

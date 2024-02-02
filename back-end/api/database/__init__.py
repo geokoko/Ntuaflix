@@ -11,7 +11,7 @@ from sys import platform
 load_dotenv()
 
 db_pool = None
-BACKUP_DIR = Path(__file__).resolve().parent.parent.parent / 'db' / 'backups'
+BACKUP_DIR = os.path.join(Path(__file__).resolve().parent.parent.parent, 'db' , 'backups')
 
 # Creates a Backup of the most recent database version
 async def create_backup():
@@ -80,7 +80,6 @@ async def create_db_pool():
         db=os.environ.get('DB_NAME'), 
         user=os.environ.get('DB_USER'),
         password=os.environ.get('DB_PASSWD'),
-        unix_socket='/Applications/XAMPP/xamppfiles/var/mysql/mysql.sock',
         minsize=5,
         maxsize=10
     )
