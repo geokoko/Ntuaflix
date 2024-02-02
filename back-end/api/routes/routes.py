@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
-from typing import List
+from typing import List, Optional
 from ..models import TitleObject, NameObject, AkaTitle, PrincipalsObject, RatingObject, GenreTitle, NameTitleObject
 from ..database import get_database_connection, check_connection, create_backup, restore, pick_backup
 from ..utils.security import get_current_admin_user
@@ -162,6 +162,34 @@ async def search_titles(query: str):
 # Genre search query
 @router.get("/bygenre", response_model=List[TitleObject])
 async def search_genre(qgenre: str, minrating: Optional[str] = 0, yrFrom: Optional[str] = None, yrTo: Optional[str] = None):
+    #Validate parameters
+    if not qgenre:
+        raise HTTPException(status_code=400, detail="Genre query must not be empty")
+
+    try:
+        minrating = float(minrating)  # assuming minrating should be a number
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Minimum rating must be a valid number")
+
+    if yrFrom is not None:
+        try:
+            yrFrom = int(yrFrom)  # assuming yrFrom should be a valid year (integer)
+            if yrFrom < 0:
+                raise HTTPException(status_code=400, detail="Start year must be a positive integer")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Start year must be a valid year")
+
+    if yrTo is not None:
+        try:
+            yrTo = int(yrTo)  # assuming yrTo should be a valid year (integer)
+            if yrTo < 0:
+                raise HTTPException(status_code=400, detail="End year must be a positive integer")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="End year must be a valid year")
+
+    if yrFrom is not None and yrTo is not None and yrFrom > yrTo:
+        raise HTTPException(status_code=400, detail="Start year must be less than or equal to end year")
+    
     try:
         async with await get_database_connection() as db_connection:
             async with db_connection.cursor(aiomysql.DictCursor) as cursor:
@@ -268,12 +296,12 @@ async def get_name_details(nameID: str):
 
                     name_title_objects.append(nt_object)
                     
-                '''await cursor.execute("""SELECT p.`Profession`
-                                            FROM `Profession` p
-                                            INNER JOIN `Profession_Person` pp ON p.`ID`= pp.`Profession_FK`
-                                            INNER JOIN `Person` pr ON pr.`ID`= p.`Name_FK`
-                                            WHERE pr.`ID` = %s""", (names["ID"]))
-                primary_profession = await cursor.fetchall()'''
+                await cursor.execute("""SELECT p.`Profession`
+                                        FROM `Profession` p
+                                        INNER JOIN `Profession_Person` pp ON p.`ID`= pp.`Profession_FK`
+                                        INNER JOIN `Person` pr ON pr.`ID`= p.`Name_FK`
+                                        WHERE pr.`ID` = %s""", (names["ID"]))
+                primary_professions = await cursor.fetchall()
                     
                 name_object = NameObject(
                     nameID=names["Name_ID"],
@@ -281,7 +309,7 @@ async def get_name_details(nameID: str):
                     namePoster=names["Image"],
                     birthYr=str(names["birthYr"]),
                     deathYr=str(names["deathYr"]) if names["deathYr"] else None,
-                    profession=None,
+                    profession=[p["Profession"] for p in primary_professions],
                     nameTitles=name_title_objects
                 )
                 
@@ -329,12 +357,12 @@ async def search_name(query: str):
 
                         name_title_objects.append(nt_object)
                     
-                    '''await cursor.execute("""SELECT p.`Profession`
+                    await cursor.execute("""SELECT p.`Profession`
                                             FROM `Profession` p
                                             INNER JOIN `Profession_Person` pp ON p.`ID`= pp.`Profession_FK`
                                             INNER JOIN `Person` pr ON pr.`ID`= p.`Name_FK`
                                             WHERE pr.`ID` = %s""", (names["ID"]))
-                    primary_profession = await cursor.fetchall()'''
+                    primary_profession = await cursor.fetchall()
                     
                     name_object = NameObject(
                         nameID=name["Name_ID"],
@@ -342,7 +370,7 @@ async def search_name(query: str):
                         namePoster=name["Image"],
                         birthYr=str(name["birthYr"]),
                         deathYr=str(name["deathYr"]) if name["deathYr"] else None,
-                        profession=None,
+                        profession=[p["Profession"] for p in primary_profession],
                         nameTitles=name_title_objects
                     )
                     
@@ -355,7 +383,7 @@ async def search_name(query: str):
     
 # Admin healthcheck
 @router.get("/admin/healthcheck")
-async def admin_health_check():
+async def admin_health_check(username: str = Depends(get_current_admin_user)):
     try:
         return await check_connection()
     except Exception as e:

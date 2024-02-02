@@ -43,12 +43,11 @@ CREATE TABLE `Genre` (
 -- Create table `Is_Episode_Of`
 CREATE TABLE `Episode` (
   `ID` int NOT NULL AUTO_INCREMENT,
-  `parentTitle_ID` int NOT NULL,
+  `parentTconst` varchar(255) NOT NULL,
   `Title_ID` int NOT NULL,
   `Season` int DEFAULT NULL,
   `Episode_Num` int DEFAULT NULL,
   PRIMARY KEY (`ID`),
-  FOREIGN KEY (`parentTitle_ID`) REFERENCES `Title` (`ID`) ON DELETE CASCADE,
   FOREIGN KEY (`Title_ID`) REFERENCES `Title` (`ID`) ON DELETE CASCADE,
   UNIQUE KEY `unique_episode` (`parentTitle_ID`, `Title_ID`, `Season`, `Episode_Num`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
