@@ -20,13 +20,13 @@ async def browse_titles(request: Request):
     try:
         async with await get_database_connection() as db_connection:
             async with db_connection.cursor() as cursor:
-                await cursor.execute("SELECT Original_Title, Average_Rating FROM `Title`;")
+                await cursor.execute("SELECT `Original_Title`, `Average_Rating` FROM `Title`;")
                 titles = await cursor.fetchall()
 
-            if titles:
-                return templates.TemplateResponse("home_page.html", {"request": request, "title_list": titles})
-            else:
-                raise HTTPException(status_code=404, detail="No titles found")
+                if titles:
+                    return templates.TemplateResponse("home_page.html", {"request": request, "title_list": titles})
+                else:
+                    raise HTTPException(status_code=404, detail="No titles found")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -167,7 +167,7 @@ async def search_titles(query: str):
 # Genre search query
 @router.get("/bygenre", response_model=List[TitleObject])
 async def search_genre(qgenre: str, minrating: Optional[str] = 0, yrFrom: Optional[str] = None, yrTo: Optional[str] = None):
-    #Validate parameters
+    # Validate parameters
     if not qgenre:
         raise HTTPException(status_code=400, detail="Genre query must not be empty")
 
@@ -304,7 +304,7 @@ async def get_name_details(nameID: str):
                 await cursor.execute("""SELECT p.`Profession`
                                         FROM `Profession` p
                                         INNER JOIN `Profession_Person` pp ON p.`ID`= pp.`Profession_FK`
-                                        INNER JOIN `Person` pr ON pr.`ID`= p.`Name_FK`
+                                        INNER JOIN `Person` pr ON pr.`ID`= pp.`Name_FK`
                                         WHERE pr.`ID` = %s""", (names["ID"]))
                 primary_professions = await cursor.fetchall()
                     
@@ -365,7 +365,7 @@ async def search_name(query: str):
                     await cursor.execute("""SELECT p.`Profession`
                                             FROM `Profession` p
                                             INNER JOIN `Profession_Person` pp ON p.`ID`= pp.`Profession_FK`
-                                            INNER JOIN `Person` pr ON pr.`ID`= p.`Name_FK`
+                                            INNER JOIN `Person` pr ON pr.`ID`= pp.`Name_FK`
                                             WHERE pr.`ID` = %s""", (names["ID"]))
                     primary_profession = await cursor.fetchall()
                     
