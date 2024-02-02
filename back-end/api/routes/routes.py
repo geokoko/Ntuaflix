@@ -4,6 +4,8 @@ from ..models import TitleObject, NameObject, AkaTitle, PrincipalsObject, Rating
 from ..database import get_database_connection, check_connection, create_backup, restore, pick_backup
 from ..utils.security import get_current_admin_user
 import aiomysql
+from typing import Optional
+import pandas as pd
 
 router = APIRouter()
 
@@ -558,3 +560,84 @@ def upload_titleepisode(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 '''
+
+#admin endpoint 7
+async def insert_into_participates_in(values):
+    query= "INSERT INTO `Participates_In` (Title_FK, Name_FK, Ordering, Job_Category, `Character`) VALUES (%s, %s, %s, %s, %s)"
+    async with await get_database_connection() as connection, connection.cursor() as cursor:
+        await cursor.execute(query, values)
+        await connection.commit()
+        
+async def fetch_title_primary_key(tconst):
+    query = "SELECT `ID` FROM `Title` WHERE `Title_ID` = %s LIMIT 1"
+    async with await get_database_connection() as connection, connection.cursor() as cursor:
+        await cursor.execute(query, (tconst,))
+        result = await cursor.fetchone()
+        if result:
+            return result[0]
+        else:
+            return None
+
+async def fetch_person_primary_key(nconst):
+    query = "SELECT `ID` FROM `Person` WHERE `Name_ID` = %s LIMIT 1"
+    async with await get_database_connection() as connection, connection.cursor() as cursor:
+        await cursor.execute(query, (nconst,))
+        result = await cursor.fetchone()
+        if result:
+            return result[0]
+        else:
+            return None
+    
+@router.post("/admin/upload/titleprincipals")
+async def upload_title_principals(file: UploadFile = File(...)):
+    try:
+        # Read the TSV file into a DataFrame
+        df = pd.read_csv(file.file, sep='\t', low_memory=False)
+
+        # Iterate over DataFrame rows and insert data into the database
+        for _, row in df.iterrows():
+                title_fk = await fetch_title_primary_key(row['tconst'])
+                name_fk = await fetch_person_primary_key(row['nconst'])
+                ordering = row['ordering']
+                job_category = row['category'] #+ (',' + row['job'] if row['job'] != '' and row['job'] != row['category'] else '')
+                character = row['characters']
+
+                if title_fk is not None and name_fk is not None:
+                    await insert_into_participates_in((title_fk, name_fk, ordering, job_category, character))
+                else:
+                    print("An error occurred")
+
+        return {"message": "File uploaded and data stored successfully"}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
+#admin endpoint 8
+# Function to update data in the Title table
+async def update_title_ratings(title_id, average_rating, num_votes):
+    query = "UPDATE `Title` SET `Average_Rating` = %s, `Votes` = %s WHERE `Title_ID` = %s"
+    async with await get_database_connection() as connection, connection.cursor() as cursor:
+        await cursor.execute(query, (average_rating, num_votes, title_id))
+        await connection.commit()
+
+# Endpoint for uploading title ratings
+@router.post("/admin/upload/titleratings")
+async def upload_title_ratings(file: UploadFile = File(...)):
+    try:
+        # Read the TSV file into a DataFrame
+        df = pd.read_csv(file.file, sep='\t', low_memory=False)
+
+        # Iterate over DataFrame rows and update data in the Title table
+        for _, row in df.iterrows():
+            title_id = row['tconst']
+            average_rating = row['averageRating']
+            num_votes = row['numVotes']
+
+            # Update the Title table
+            await update_title_ratings(title_id, average_rating, num_votes)
+
+        return {"message": "File uploaded and data stored successfully"}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
