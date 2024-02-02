@@ -16,5 +16,4 @@ async def lifespan(app: FastAPI):
     await shutdown()
 
 app = FastAPI(lifespan=lifespan)
-
-app.include_router(routes.router)
+app.include_router(routes.router, prefix=routes.BASE_URL)
