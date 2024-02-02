@@ -34,5 +34,5 @@ $env:ADMIN_USERNAME="your_admin_username"
 ```
 
 To create and populate the database, simply run the notebook data_processing.ipynb.
-To run the app, run: ``uvicorn api.main:app --reload`` from the /back-end directory.
+To run the app, run: ``uvicorn api.main:app --reload --host 127.0.0.1 --port 9876`` from the /back-end directory.
 
