@@ -12,7 +12,7 @@ import pandas as pd
 
 router = APIRouter()
 BASE_URL = "/ntuaflix_api"
-templates = Jinja2Templates(directory="/Users/vasilikitsouknida/Desktop/softeng23-42/front-end/templates")
+templates = Jinja2Templates(directory="../front-end/templates")
 
 # Index
 @router.get("/", response_class=HTMLResponse)
