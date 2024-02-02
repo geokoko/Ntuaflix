@@ -1,4 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse
+from starlette.requests import Request
 from typing import List, Optional
 from ..models import TitleObject, NameObject, AkaTitle, PrincipalsObject, RatingObject, GenreTitle, NameTitleObject
 from ..database import get_database_connection, check_connection, create_backup, restore, pick_backup
@@ -9,22 +12,24 @@ import pandas as pd
 
 router = APIRouter()
 BASE_URL = "/ntuaflix_api"
+templates = Jinja2Templates(directory="../front-end/templates")
 
 # Index
-@router.get("/")
-async def browse_titles():
+@router.get("/", response_class=HTMLResponse)
+async def browse_titles(request: Request):
     try:
         async with await get_database_connection() as db_connection:
-            async with db_connection.cursor(aiomysql.DictCursor) as cursor:
-                await cursor.execute("SELECT * FROM `Title`;")
+            async with db_connection.cursor() as cursor:
+                await cursor.execute("SELECT Original_Title, Average_Rating FROM `Title`;")
                 titles = await cursor.fetchall()
 
             if titles:
-                return titles
+                return templates.TemplateResponse("home_page.html", {"request": request, "title_list": titles})
             else:
                 raise HTTPException(status_code=404, detail="No titles found")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # Browse a specific Title
 @router.get("/title/{titleID}", response_model=TitleObject)
@@ -383,7 +388,7 @@ async def search_name(query: str):
     
 # Admin healthcheck
 @router.get("/admin/healthcheck")
-async def admin_health_check(username: str = Depends(get_current_admin_user)):
+async def admin_health_check():
     try:
         return await check_connection()
     except Exception as e:
@@ -407,10 +412,15 @@ async def initiate_restore(username: str = Depends(get_current_admin_user)):
 
 #admin endpoint 7
 async def insert_into_participates_in(values):
-    query= "INSERT INTO `Participates_In` (Title_FK, Name_FK, Ordering, Job_Category, `Character`) VALUES (%s, %s, %s, %s, %s)"
+    query = "INSERT INTO `Participates_In` (Title_FK, Name_FK, Ordering, Job_Category, `Character`) VALUES (%s, %s, %s, %s, %s)"
     async with await get_database_connection() as connection, connection.cursor() as cursor:
-        await cursor.execute(query, values)
-        await connection.commit()
+        try:
+            await cursor.execute(query, values)
+            await connection.commit()
+            print("Insert successful")
+        except Exception as e:
+            print(f"Error executing query: {e}")
+            raise  # Re-raise the exception to see the full traceback
         
 async def fetch_title_primary_key(tconst):
     query = "SELECT `ID` FROM `Title` WHERE `Title_ID` = %s LIMIT 1"
@@ -454,6 +464,7 @@ async def upload_title_principals(file: UploadFile = File(...)):
         return {"message": "File uploaded and data stored successfully"}
 
     except Exception as e:
+        print(f"An error occurred: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     
 
@@ -462,8 +473,16 @@ async def upload_title_principals(file: UploadFile = File(...)):
 async def update_title_ratings(title_id, average_rating, num_votes):
     query = "UPDATE `Title` SET `Average_Rating` = %s, `Votes` = %s WHERE `Title_ID` = %s"
     async with await get_database_connection() as connection, connection.cursor() as cursor:
-        await cursor.execute(query, (average_rating, num_votes, title_id))
-        await connection.commit()
+      #  await cursor.execute(query, (average_rating, num_votes, title_id))
+      #  await connection.commit()
+
+        try:
+            await cursor.execute(query, (average_rating, num_votes, title_id))
+            await connection.commit()
+            print("Insert successful")
+        except Exception as e:
+            print(f"Error executing query: {e}")
+            raise  # Re-raise the exception to see the full traceback
 
 # Endpoint for uploading title ratings
 @router.post("/admin/upload/titleratings")
