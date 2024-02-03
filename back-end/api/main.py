@@ -22,7 +22,9 @@ async def startup():
     await create_db_pool()
 
 async def shutdown():
+    print("Starting shutdown process...")
     await close_db_pool()
+    print("Database pool closed")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

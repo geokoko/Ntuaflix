@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Query, Response, Request
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse
-from starlette.requests import Request
+from fastapi.responses import HTMLResponse, FileResponse
 from typing import List, Optional
 from ..models import TitleObject, NameObject, AkaTitle, PrincipalsObject, RatingObject, GenreTitle, NameTitleObject
 from ..database import get_database_connection, check_connection, create_backup, restore, pick_backup
@@ -9,24 +8,39 @@ from ..utils.security import get_current_admin_user
 import aiomysql
 from typing import Optional
 import pandas as pd
+import csv
+import os
+from io import StringIO
 
 router = APIRouter()
 BASE_URL = "/ntuaflix_api"
-templates = Jinja2Templates(directory="../front-end/templates")
+templates = Jinja2Templates(directory=os.path.normpath(os.path.join(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, os.pardir, os.pardir), "front-end", "templates")))
 
 # Index
-@router.get("/", response_class=HTMLResponse)
-async def browse_titles(request: Request):
+@router.get("/")
+async def browse_titles(request: Request, format_type: str = "json"):
     try:
         async with await get_database_connection() as db_connection:
-            async with db_connection.cursor() as cursor:
+            async with db_connection.cursor(aiomysql.DictCursor) as cursor:
                 await cursor.execute("SELECT `Original_Title`, `Average_Rating` FROM `Title`;")
                 titles = await cursor.fetchall()
-
-                if titles:
-                    return templates.TemplateResponse("home_page.html", {"request": request, "title_list": titles})
-                else:
+                if not titles:
                     raise HTTPException(status_code=404, detail="No titles found")
+
+                if format_type == "html":
+                    return templates.TemplateResponse("home_page.html", {"request": request, "title_list": titles})
+                elif format_type == "csv":
+                    csv_file = StringIO()
+                    fieldnames = titles[0].keys()
+                    writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+                    writer.writeheader()
+                    writer.writerows(titles)
+                    csv_file.seek(0)
+                    return Response(content=csv_file.read(), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=homepage.csv"})
+                elif format_type == "json":
+                    return titles
+                else:
+                    return {"error": "Unsupported format specifier"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

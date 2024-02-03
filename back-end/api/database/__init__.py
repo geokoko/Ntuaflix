@@ -75,18 +75,26 @@ async def check_connection():
 
 async def create_db_pool():
     global db_pool
-    db_pool = await aiomysql.create_pool(
-        host=os.environ.get('DB_HOST'), 
-        db=os.environ.get('DB_NAME'), 
-        user=os.environ.get('DB_USER'),
-        password=os.environ.get('DB_PASSWD'),
-        minsize=5,
-        maxsize=10
-    )
+    try:
+        db_pool = await aiomysql.create_pool(
+            host=os.environ.get('DB_HOST'), 
+            db=os.environ.get('DB_NAME'), 
+            user=os.environ.get('DB_USER'),
+            password=os.environ.get('DB_PASSWD'),
+            minsize=5,
+            maxsize=10
+        )
+    except Exception as e:
+        print(f"Failed to create database pool: {e}")
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable, please try again later.")
 
 async def close_db_pool():
     db_pool.close()
     await db_pool.wait_closed()
 
 async def get_database_connection():
-    return db_pool.acquire()
+    try:
+        return db_pool.acquire()
+    except Exception as e:
+        print(f"Failed to acquire database connection: {e}")
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable, please try again later.")
