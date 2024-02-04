@@ -424,6 +424,228 @@ async def initiate_restore(username: str = Depends(get_current_admin_user)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# admin endpoint 4
+async def insert_into_name(values):
+    query = "INSERT INTO `Person` (Name_ID, Name, Image, Birth_Year, Death_Year) VALUES (%s, %s, %s, %s, %s)"
+    async with await get_database_connection() as connection, connection.cursor() as cursor:
+        await cursor.execute(query, values)
+        await connection.commit()
+
+async def insert_into_profession(values):
+    profession_name = values[0]
+
+    # Check if the profession already exists in the 'Profession' table
+    query_check = "SELECT `ID` FROM `Profession` WHERE `Profession` = %s LIMIT 1"
+    async with await get_database_connection() as connection, connection.cursor() as cursor:
+        await cursor.execute(query_check, (profession_name,))
+        result = await cursor.fetchone()
+
+        if result:
+            # If the profession already exists, return its ID
+            return result[0]
+        else:
+            # If the profession doesn't exist, insert it into the 'Profession' table
+            query_insert = "INSERT INTO `Profession` (Profession) VALUES (%s)"
+            await cursor.execute(query_insert, (profession_name,))
+            await connection.commit()
+
+            # Return the ID of the profession (existing or newly inserted)
+            return await fetch_profession_primary_key(profession_name)
+
+async def insert_into_profession_person(values):
+    query = "INSERT INTO `Profession_Person` (Profession_FK, Name_FK) VALUES (%s, %s)"
+    async with await get_database_connection() as connection, connection.cursor() as cursor:
+        await cursor.execute(query, values)
+        await connection.commit()
+
+async def fetch_profession_primary_key(profession_name):
+    query = "SELECT `ID` FROM `Profession` WHERE `Profession` = %s LIMIT 1"
+    async with await get_database_connection() as connection, connection.cursor() as cursor:
+        await cursor.execute(query, (profession_name,))
+        result = await cursor.fetchone()
+        if result:
+            return result[0]
+        else:
+            return None
+        
+@router.post("/admin/upload/namebasics")
+async def upload_name_basics(file: UploadFile = File(...)):
+    try:
+        # Read the TSV file into a DataFrame
+        df = pd.read_csv(file.file, sep='\t', low_memory=False)
+
+        # Iterate over DataFrame rows and insert data into the database
+        for _, row in df.iterrows():
+            name_id = row['nconst']
+            primaryname = row['primaryName']
+            image_url = row['img_url_asset']
+            birthyear = row['birthYear']
+            deathyear = row['deathYear']
+
+            # Insert data into the 'Name' table
+            await insert_into_name((name_id, primaryname, image_url, birthyear, deathyear))
+
+            # Handle primaryProfession column
+            professions_value = row['primaryProfession']
+            if isinstance(professions_value, str):
+                professions = professions_value.split(',')
+                for profession in professions:
+                    # Insert data into the 'Profession' table and fetch its ID
+                    profession_fk = await insert_into_profession((profession,))
+
+                    # Fetch Name_FK (id) of the name just added to the 'Name' table
+                    name_fk = await fetch_person_primary_key(name_id)
+
+                    # Check if the profession_fk is not None before inserting into Profession_Person
+                    if profession_fk is not None and name_fk is not None:
+                        # Insert data into the 'Profession_Person' table
+                        await insert_into_profession_person((profession_fk, name_fk))
+
+        return {"message": "File uploaded and data stored successfully"}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# admin endpoint 5
+async def check_existing_participation(name_fk, title_fk, job_category):
+    query = "SELECT 1 FROM `Participates_In` WHERE `Name_FK` = %s AND `Title_FK` = %s AND `Job_Category` = %s LIMIT 1"
+    async with await get_database_connection() as connection, connection.cursor() as cursor:
+        await cursor.execute(query, (name_fk, title_fk, job_category))
+        result = await cursor.fetchone()
+        return result is not None
+
+@router.post("/admin/upload/titlecrew")
+async def upload_title_crew(file: UploadFile = File(...)):
+    try:
+        # Read the TSV file into a DataFrame
+        df = pd.read_csv(file.file, sep='\t', low_memory=False)
+
+        # Collect errors to include in the final response
+        errors = []
+
+        # Iterate over DataFrame rows and insert data into the database
+        for _, row in df.iterrows():
+            title_id = row['tconst']
+            directors = row['directors'].split(',') if row['directors'] and row['directors'] != '\\N' else []
+            writers = row['writers'].split(',') if row['writers'] and row['writers'] != '\\N' else []
+
+            # Process directors
+            for director_id in directors:
+                try:
+                    # Check if the director's name_id exists in the 'Name' table
+                    director_name_fk = await fetch_person_primary_key(director_id)
+                    if director_name_fk is None:
+                        raise ValueError(f"Person with Name_ID {director_id} doesn't exist in the database.")
+
+                    # Check if the title_id exists in the 'Title' table
+                    title_fk = await fetch_title_primary_key(title_id)
+                    if title_fk is None:
+                        raise ValueError(f"Title with Title_ID {title_id} doesn't exist in the database.")
+
+                    # Check if the entry already exists in the 'Participates_In' table
+                    existing_director_entry = await check_existing_participation(director_name_fk, title_fk, 'director')
+                    if existing_director_entry:
+                        # Entry already exists, skip insertion
+                        continue
+
+                    # Insert data into the 'Participates_In' table for directors
+                    await insert_into_participates_in((title_fk, director_name_fk, None, 'director', None))
+                except Exception as e:
+                    errors.append(str(e))
+                    continue
+
+            # Process writers
+            for writer_id in writers:
+                try:
+                    # Check if the writer's name_id exists in the 'Name' table
+                    writer_name_fk = await fetch_person_primary_key(writer_id)
+                    if writer_name_fk is None:
+                        raise ValueError(f"Person with Name_ID {writer_id} doesn't exist in the database.")
+
+                    # Check if the title_id exists in the 'Title' table
+                    title_fk = await fetch_title_primary_key(title_id)
+                    if title_fk is None:
+                        raise ValueError(f"Title with Title_ID {title_id} doesn't exist in the database.")
+
+                    # Check if the entry already exists in the 'Participates_In' table
+                    existing_writer_entry = await check_existing_participation(writer_name_fk, title_fk, 'writer')
+                    if existing_writer_entry:
+                        # Entry already exists, skip insertion
+                        continue
+
+                    # Insert data into the 'Participates_In' table for writers
+                    await insert_into_participates_in((title_fk, writer_name_fk, None, 'writer', None))
+                except Exception as e:
+                    errors.append(str(e))
+                    continue
+
+        if errors:
+            # If there are errors, raise an HTTPException with the collected error messages
+            error_message = "\n".join(errors)
+            raise HTTPException(status_code=500, detail=error_message)
+
+        return {"message": "File uploaded and data stored successfully"}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# admin endpoint 6
+async def insert_into_title(values):
+    query = "INSERT INTO `Title` (Title_ID, Original_Title, Type) VALUES (%s, %s, %s)"
+    async with await get_database_connection() as connection, connection.cursor() as cursor:
+        await cursor.execute(query, values)
+        await connection.commit()
+
+async def insert_into_episode(values):
+    query = "INSERT INTO `Episode` (Title_ID, Parent_Title_ID, Season, Episode_Num) VALUES (%s, %s, %s, %s)"
+    async with await get_database_connection() as connection, connection.cursor() as cursor:
+        await cursor.execute(query, values)
+        await connection.commit()
+
+
+@router.post("/admin/upload/titleepisode")
+async def upload_title_episode(file: UploadFile = File(...)):
+    try:
+        # Read the TSV file into a DataFrame
+        df = pd.read_csv(file.file, sep='\t', low_memory=False)
+
+        # Collect errors to include in the final response
+        errors = []
+
+        # Iterate over DataFrame rows and insert data into the database
+        for _, row in df.iterrows():
+            title_id = row['tconst']
+            parent_title_id = row['parentTconst']
+            season_number = row['seasonNumber']
+            episode_number = row['episodeNumber']
+
+            try:
+                # Add episode to the Title table
+                await insert_into_title((title_id, title_id, 'episode'))
+
+                # Add episode to the Episode table
+                title_fk = await fetch_title_primary_key(title_id)
+                parent_title_fk = await fetch_title_primary_key(parent_title_id)
+
+                if title_fk is None or parent_title_fk is None:
+                    raise ValueError(f"Title with Title_ID {title_id} or Parent_Title_ID {parent_title_id} doesn't exist in the database.")
+
+                # Insert data into the 'Episode' table
+                await insert_into_episode((title_fk, parent_title_fk, season_number, episode_number))
+            except Exception as e:
+                errors.append(str(e))
+                continue
+
+        if errors:
+            # If there are errors, raise an HTTPException with the collected error messages
+            error_message = "\n".join(errors)
+            raise HTTPException(status_code=500, detail=error_message)
+
+        return {"message": "File uploaded and data stored successfully"}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 #admin endpoint 7
 async def insert_into_participates_in(values):
     query = "INSERT INTO `Participates_In` (Title_FK, Name_FK, Ordering, Job_Category, `Character`) VALUES (%s, %s, %s, %s, %s)"
