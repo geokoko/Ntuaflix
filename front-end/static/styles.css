@@ -5,14 +5,14 @@
     --screen-background: #140330;
     --card: #E0CFFC;
 }
-
+/*basic parameters needed in the entire body our pages*/
 body{
     background-color: var(--screen-background) !important;
     margin-left: 188px !important; 
     margin-right: 188px !important;
 }
 
-/*styles concerning the navigation bar*/
+/*------------------------------------styles concerning the navigation bar---------------------------------------*/
 .navbar{
     height: 102px !important;
     background-color: var(--navbar-background);
@@ -39,8 +39,9 @@ body{
     position: absolute;
     left: 188px;
 }
+/*---------------------------------------------------------------------------------------------------------------*/
 
-/*Text Styles*/
+/*--------------------------------------------------Text Styles--------------------------------------------------*/
 .h1{
     font-family:Arial, Helvetica, sans-serif;
     font-size: 70px !important;
@@ -55,6 +56,33 @@ body{
     font-weight:500 !important;
     color: white !important;
     text-align: center; 
+}
+
+.title{
+    color:white;
+    font-size:64px;
+}
+
+.movie-title{
+    color: white;
+    font-size: 30px;
+}
+
+.subtitle{
+    color:white;
+    font-weight: bold;
+    font-size:24px;
+}
+
+.subtext{
+    color:white;
+    font-size:21px;
+}
+
+.job{
+    color:white;
+    font-style:italic;
+    font-size:16px;
 }
 
 .has-search .form-control-feedback{
@@ -82,6 +110,7 @@ body{
     object-fit: cover;
 }
 
+/*-----------------------------------------styles concerning rating object---------------------------------------*/
 .rating {
     display: flex;
     align-items: center;
@@ -96,3 +125,26 @@ body{
     font-size: 21px; /* Change font size as needed */
     margin-right: 5px; /* Optional margin to separate the rating value and star icon */
 }
+/*---------------------------------------------------------------------------------------------------------------*/
+
+
+
+
+/*--------------------------------------styles concerning the uploads page-------------------------------------*/
+.upload-cover{
+    align-items: center;    
+    justify-content: center;
+    background-color: var(--logo); /* Change this to your desired background color */
+    border-radius: 10px;
+}
+
+.upload-form{
+    align-items:center;
+}
+
+.custom-file-input{
+    color:white !important;
+    background-color: var(--navbar-background) !important;
+    border: 1px solid black !important;
+}
+/*-------------------------------------------------------------------------------------------------------------*/
