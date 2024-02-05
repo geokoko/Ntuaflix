@@ -69,7 +69,7 @@ async def check_connection():
             async with conn.cursor() as cursor:
                 await cursor.execute("SELECT 1;")
                 await cursor.fetchone()
-        return {"status": "success"}
+        return {"status": "OK", "dataconnection": "Connection to database is OK."}
     except Exception as e:
         return {"status": "failed", "dataconnection": str(e)}
 
