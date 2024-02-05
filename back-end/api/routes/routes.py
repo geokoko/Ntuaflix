@@ -402,7 +402,7 @@ async def search_name(query: str):
     
 # Admin healthcheck
 @router.get("/admin/healthcheck")
-async def admin_health_check():
+async def admin_health_check(username: str = Depends(get_current_admin_user)):
     try:
         return await check_connection()
     except Exception as e:
@@ -597,7 +597,7 @@ async def insert_into_title(values):
         await connection.commit()
 
 async def insert_into_episode(values):
-    query = "INSERT INTO `Episode` (Title_ID, Parent_Title_ID, Season, Episode_Num) VALUES (%s, %s, %s, %s)"
+    query = "INSERT INTO `Episode` (Title_FK, Parent_Title_FK, Season, Episode_Num) VALUES (%s, %s, %s, %s)"
     async with await get_database_connection() as connection, connection.cursor() as cursor:
         await cursor.execute(query, values)
         await connection.commit()
