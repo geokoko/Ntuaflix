@@ -17,6 +17,7 @@ BASE_URL = "/ntuaflix_api"
 templates = Jinja2Templates(directory=os.path.normpath(os.path.join(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, os.pardir, os.pardir), "front-end", "templates")))
 
 # Index
+# Existing endpoint without HTML format
 @router.get("/")
 async def browse_titles(request: Request, format_type: str = "json"):
     try:
@@ -27,9 +28,7 @@ async def browse_titles(request: Request, format_type: str = "json"):
                 if not titles:
                     raise HTTPException(status_code=404, detail="No titles found")
 
-                if format_type == "html":
-                    return templates.TemplateResponse("home_page.html", {"request": request, "title_list": titles})
-                elif format_type == "csv":
+                if format_type == "csv":
                     csv_file = StringIO()
                     fieldnames = titles[0].keys()
                     writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
@@ -41,6 +40,21 @@ async def browse_titles(request: Request, format_type: str = "json"):
                     return titles
                 else:
                     return {"error": "Unsupported format specifier"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# New endpoint specifically for HTML format
+@router.get("/html", response_class=HTMLResponse)
+async def browse_titles_html(request: Request):
+    try:
+        async with await get_database_connection() as db_connection:
+            async with db_connection.cursor(aiomysql.DictCursor) as cursor:
+                await cursor.execute("SELECT `Original_Title`, `Average_Rating`, `IMAGE` FROM `Title`;")
+                titles = await cursor.fetchall()
+                if not titles:
+                    raise HTTPException(status_code=404, detail="No titles found")
+
+                return templates.TemplateResponse("home_page.html", {"request": request, "title_list": titles})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -108,6 +122,23 @@ async def get_title_details(titleID: str):
     except HTTPException as http_ex:
         raise http_ex
 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.get("/search_titles", response_class=HTMLResponse)
+async def search_movies_html(request: Request, query: str = Query(...)):
+    try:
+        async with await get_database_connection() as db_connection:
+            async with db_connection.cursor(aiomysql.DictCursor) as cursor:
+                # Use a parameterized query to prevent SQL injection
+                query = f"%{query}%"
+                await cursor.execute("SELECT `Original_Title`, `Average_Rating`, `IMAGE` FROM `Title` WHERE `Original_Title` LIKE %s;", (query,))
+                titles = await cursor.fetchall()
+                print(titles)
+                if not titles:
+                    raise HTTPException(status_code=404, detail="No titles found")
+
+                return templates.TemplateResponse("home_page.html", {"request": request, "title_list": titles})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

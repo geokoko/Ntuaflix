@@ -31,7 +31,7 @@ def run_ddl_script(host, user, password, script_path):
 
 run_ddl_script(host, user, password, script_path)
 
-connection = pymysql.connect(host=host, user=user, password=password, db=db)
+connection = pymysql.connect(host=host, user=user, password=password, db=db, unix_socket='/Applications/XAMPP/xamppfiles/var/mysql/mysql.sock')
 print("Connection to the database successful")
 
 files = {

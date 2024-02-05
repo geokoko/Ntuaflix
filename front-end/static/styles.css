@@ -110,6 +110,10 @@ body{
     object-fit: cover;
 }
 
+.no-image-placeholder{
+    color:white;
+}
+
 /*-----------------------------------------styles concerning rating object---------------------------------------*/
 .rating {
     display: flex;
