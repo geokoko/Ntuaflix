@@ -81,7 +81,7 @@ async def create_db_pool():
             db=os.environ.get('DB_NAME'), 
             user=os.environ.get('DB_USER'),
             password=os.environ.get('DB_PASSWD'),
-            unix_socket=('/Applications/XAMPP/xamppfiles/var/mysql/mysql.sock'),
+            #unix_socket=('/Applications/XAMPP/xamppfiles/var/mysql/mysql.sock'),
             minsize=5,
             maxsize=10
         )

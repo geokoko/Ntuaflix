@@ -53,7 +53,8 @@ def newratings(args):
 
 def name(args):
     try:
-        response = requests.get(f"{BASE_URL}/name/{args.nameid}")
+        params = {"format": args.format}
+        response = requests.get(f"{BASE_URL}/name/{args.nameid}", params=params)
         handle_response(response, args.format)
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
@@ -62,7 +63,8 @@ def name(args):
 #endpoint not working
 def title(args):
     try:
-        response = requests.get(f"{BASE_URL}/title/{args.titleID}")
+        params = {"format": args.format}
+        response = requests.get(f"{BASE_URL}/title/{args.titleID}", params = params)
         handle_response(response, args.format)
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
@@ -73,19 +75,18 @@ def handle_response(response, format):
     if response.status_code == 200:
         if format == 'json':
             print(response.json())
-        elif format == 'csv':
-            # To DO: Implement CSV handling
-            pass
-        else:
+        elif format == "csv":
             print(response.text)
+        else:
+            print("Unsupported format")
     elif response.status_code == 204:
-        print("No data returned.")
+        print("Status Code 204: No data returned.")
     elif response.status_code == 400:
-        print("Bad request. Invalid parameters provided in the call.")
+        print("Status Code 400: Bad request. Invalid parameters provided in the call.")
     elif response.status_code == 404:
-        print("Not Found. The requested resource was not found.")
+        print("Status Code 404: Not Found. The requested resource was not found.")
     elif response.status_code == 500:
-        print("Internal server error.")
+        print("Status Code 500: Internal server error.")
     else:
         print(f"Unexpected status code: {response.status_code}")
 
@@ -121,7 +122,7 @@ if __name__ == "__main__":
         else:
             name(args)
     elif args.scope == "title":
-        if not args.titleid:
+        if not args.titleID:
             print("Error: --titleID is a mandatory parameter for the 'title' scope.")
         else:
             title(args)
