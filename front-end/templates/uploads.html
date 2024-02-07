@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>
+            NTUAflix
+        </title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="icon" type="image/x-icon" href="popcorn-removebg-preview.png">
+        <link rel="stylesheet" href="styles.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    </head>
+    <body>
+        <!-- Navigation -->
+        <nav class="navbar navbar-expand-sm justify-content-end fixed-top">
+            <div class="container-fluid">
+                <!--This is used to make the navbar collapsible if the screen is too small-->
+                <a class="navbar-brand" href="home_page.html">NTUAflix</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#collapsibleNavbar">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="collapsibleNavbar">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="home_page.html">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Upload</a>
+                        </li>
+
+                        <!--We make sure the admin operations are grouped together-->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Admin Operations</a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#">Backup</a></li>
+                                <li><a class="dropdown-item" href="#">Restore</a></li>
+                                <li><a class="dropdown-item" href="#">Reset Database</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container-fluid" style="margin-top: 190px;">
+
+            <!--Endpoint2-->
+            <div class="row g-0" style="margin-bottom:100px;">
+                <div class="col-sm-1"></div>
+                <div class="col-sm-10 upload-cover d-flex flex-column align-items-center justify-content-center">
+                    <div class="row g-0">
+                        <p style="font-size:30px;">Upload tsv files with data concerning movie titles </p>
+                    </div>
+                    <div class="row g-0 m-3">
+                        <div class="upload-form">
+                            <label for="endpoint2" class="form-label"></label>
+                            <input class="form-control custom-file-input" type="file" id="endpoint2">
+                        </div>
+                    </div>
+                    <div class="row g-0 m-3">
+                        <button class = "btn btn-outline-dark" onclick="" style="width: 90px;">Upload</button>
+                    </div>
+                </div>
+                <div class="col-sm-1"></div>
+            </div>
+
+            <!--Endpoint3-->
+            <div class="row g-0" style="margin-bottom:100px;">
+                <div class="col-sm-1"></div>
+                <div class="col-sm-10 upload-cover d-flex flex-column align-items-center justify-content-center">
+                    <div class="row g-0">
+                        <p style="font-size:30px;">Upload tsv files with data concerning parallel movie titles </p>
+                    </div>
+                    <div class="row g-0 m-3">
+                        <div class="upload-form">
+                            <label for="endpoint3" class="form-label"></label>
+                            <input class="form-control custom-file-input" type="file" id="endpoint3">
+                        </div>
+                    </div>
+                    <div class="row g-0 m-3">
+                        <button class = "btn btn-outline-dark" onclick="" style="width: 90px;">Upload</button>
+                    </div>
+                </div>
+                <div class="col-sm-1"></div>
+            </div>   
+
+            <!--Endpoint4-->
+            <div class="row g-0" style="margin-bottom:100px;">
+                <div class="col-sm-1"></div>
+                <div class="col-sm-10 upload-cover d-flex flex-column align-items-center justify-content-center">
+                    <div class="row g-0">
+                        <p style="font-size:30px;">Upload tsv files with data concerning people names </p>
+                    </div>
+                    <div class="row g-0 m-3">
+                        <div class="upload-form">
+                            <label for="endpoint4" class="form-label"></label>
+                            <input class="form-control custom-file-input" type="file" id="endpoint4">
+                        </div>
+                    </div>
+                    <div class="row g-0 m-3">
+                        <button class = "btn btn-outline-dark" onclick="" style="width: 90px;">Upload</button>
+                    </div>
+                </div>
+                <div class="col-sm-1"></div>
+            </div>
+
+            <!--Endpoint5-->
+            <div class="row g-0" style="margin-bottom:100px;">
+                <div class="col-sm-1"></div>
+                <div class="col-sm-10 upload-cover d-flex flex-column align-items-center justify-content-center">
+                    <div class="row g-0">
+                        <p style="font-size:30px;">Upload tsv files with data concerning director and writers' names </p>
+                    </div>
+                    <div class="row g-0 m-3">
+                        <div class="upload-form">
+                            <label for="endpoint5" class="form-label"></label>
+                            <input class="form-control custom-file-input" type="file" id="endpoint5">
+                        </div>
+                    </div>
+                    <div class="row g-0 m-3">
+                        <button class = "btn btn-outline-dark" onclick="" style="width: 90px;">Upload</button>
+                    </div>
+                </div>
+                <div class="col-sm-1"></div>
+            </div>  
+
+            <!--Endpoint6-->
+            <div class="row g-0" style="margin-bottom:100px;">
+                <div class="col-sm-1"></div>
+                <div class="col-sm-10 upload-cover d-flex flex-column align-items-center justify-content-center">
+                    <div class="row g-0">
+                        <p style="font-size:30px;">Upload tsv files with data concerning episodes </p>
+                    </div>
+                    <div class="row g-0 m-3">
+                        <div class="upload-form">
+                            <label for="endpoint6" class="form-label"></label>
+                            <input class="form-control custom-file-input" type="file" id="endpoint6">
+                        </div>
+                    </div>
+                    <div class="row g-0 m-3">
+                        <button class = "btn btn-outline-dark" onclick="" style="width: 90px;">Upload</button>
+                    </div>
+                </div>
+                <div class="col-sm-1"></div>
+            </div>
+
+            <!--Endpoint7-->
+            <div class="row g-0" style="margin-bottom:100px;">
+                <div class="col-sm-1"></div>
+                <div class="col-sm-10 upload-cover d-flex flex-column align-items-center justify-content-center">
+                    <div class="row g-0">
+                        <p style="font-size:30px;">Upload tsv files with data concerning principals </p>
+                    </div>
+                    <div class="row g-0 m-3">
+                        <div class="upload-form">
+                            <label for="endpoint7" class="form-label"></label>
+                            <input class="form-control custom-file-input" type="file" id="endpoint7">
+                        </div>
+                    </div>
+                    <div class="row g-0 m-3">
+                        <button class = "btn btn-outline-dark" onclick="" style="width: 90px;">Upload</button>
+                    </div>
+                </div>
+                <div class="col-sm-1"></div>
+            </div>  
+            
+            <!--Endpoint8-->
+            <div class="row g-0" style="margin-bottom:100px;">
+                <div class="col-sm-1"></div>
+                <div class="col-sm-10 upload-cover d-flex flex-column align-items-center justify-content-center">
+                    <div class="row g-0">
+                        <p style="font-size:30px;">Upload tsv files with data concerning rating </p>
+                    </div>
+                    <div class="row g-0 m-3">
+                        <div class="upload-form">
+                            <label for="endpoint8" class="form-label"></label>
+                            <input class="form-control custom-file-input" type="file" id="endpoint8">
+                        </div>
+                    </div>
+                    <div class="row g-0 m-3">
+                        <button class = "btn btn-outline-dark" onclick="" style="width: 90px;">Upload</button>
+                    </div>
+                </div>    
+                <div class="col-sm-1"></div>
+            </div> 
+            
+        </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    </body>
+</html>
+
