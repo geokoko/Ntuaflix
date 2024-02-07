@@ -1,0 +1,3 @@
+.env
+/back-end/api/venv
+back-end/db/data/data_processing.ipynb
