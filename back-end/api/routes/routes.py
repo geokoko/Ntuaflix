@@ -57,6 +57,167 @@ async def browse_titles_html(request: Request):
                 return templates.TemplateResponse("home_page.html", {"request": request, "title_list": titles})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+# New endpoint for viewing a specific title in HTML format
+@router.get("/title_html/{title_id}", response_class=HTMLResponse)
+async def title_details_html(request: Request, title_id: str):
+    try:
+        async with await get_database_connection() as db_connection:
+            async with db_connection.cursor(aiomysql.DictCursor) as cursor:
+                try:
+                    await cursor.execute("""SELECT `ID`, `Original_Title`, `Average_Rating`, `IMAGE`, `Start_Year`, `End_Year`, `Type`, `Votes` 
+                                        FROM `Title`
+                                        WHERE `Title_ID` = %s;""", (title_id))
+                except Exception as e: 
+                    print(f"Error: {e}")
+                title = await cursor.fetchone()
+                ID = title["ID"]
+                if not title:
+                    raise HTTPException(status_code=404, detail="No titles found")
+                
+                try:
+                    await cursor.execute("""SELECT G.`Genre` as `genreTitle`
+                                        FROM `Title` T
+                                        INNER JOIN `Title_Genre` tg ON T.`ID` = tg.`Title_FK`
+                                        INNER JOIN `Genre` G ON tg.`Genre_FK` = G.`ID`
+                                        WHERE T.`ID` = %s;""", (ID,))
+                except Exception as e: 
+                    print(f"Error: {e}")
+                genres = await cursor.fetchall()
+                print(genres)
+                if not genres:
+                    genre_titles = []
+                else:
+                    genre_titles = [genre['genreTitle'] for genre in genres]
+
+                try:
+                    await cursor.execute("""SELECT alt.`Title_AKA` as akaTitle, alt.`Region` as regionAbbrev
+                                        FROM `Title` T
+                                        INNER JOIN `Alt_Title` alt ON T.`ID` = alt.`Title_FK`
+                                        WHERE T .`ID` = %s;""", (ID,))
+                except Exception as e: 
+                    print(f"Error: {e}")
+                akas_data = await cursor.fetchall()
+                if not akas_data:
+                    raise HTTPException(status_code=404, detail="No akas found")
+                akas = []
+                for entry in akas_data: 
+                    aka_title = entry['akaTitle']
+                    region = entry['regionAbbrev']
+
+                    if region: 
+                        aka = f"{aka_title} ({region})"
+                    else: 
+                        aka = f"{aka_title}"
+                    akas.append(aka)
+                akas_formatted = ", ".join(akas)
+
+                try:
+                    await cursor.execute("""SELECT DISTINCT p.`Name_ID` as `nameID`, p.`Name` as `name`, pi.`Job_Category` as `category`, p.`Image`, pi.`Character` as `character`
+                                        FROM `Person` p
+                                        INNER JOIN `Participates_In` pi ON p.`ID` = pi.`Name_FK`
+                                        WHERE p.`ID` IN (
+                                            SELECT pi2.`Name_FK`
+                                            FROM `Participates_In` pi2
+                                            WHERE pi2.`Title_FK` = %s);""", (ID,))
+                except Exception as e: 
+                    print(f"Error: {e}")
+                principals_data = await cursor.fetchall()
+                if not principals_data:
+                    raise HTTPException(status_code=404, detail="No principals found")
+                directors = []
+                writers = []
+                actors = []
+                actors_image = []
+                actor_nameID = []
+                characters = []
+                principals = []
+                principals_image = []
+                principals_nameID = []
+                credits = []
+                for person in principals_data:
+                    if "director" in person['category']:
+                        directors.append(person['name'])
+                    if "writer" in person['category']: 
+                        writers.append(person['name'])
+                    if "actor" in person['category']:
+                        actors.append(person['name'])
+                        actors_image.append(person['Image'])
+                        actor_nameID.append(person['nameID'])
+                        character_unformat = person['character']
+                        if character_unformat is not None: 
+                            character = character_unformat[2:-2]
+                        else: 
+                            character = character_unformat
+                        characters.append(character)
+                    if "actress" in person['category']:
+                        actors.append(person['name'])
+                        actors_image.append(person['Image'])
+                        actor_nameID.append(person['nameID'])
+                        character_unformat = person['character']
+                        character = character_unformat[2:-2]
+                        characters.append(character)
+                    if "actor" not in person['category'] and "actress" not in person['category']:
+                        principals.append(person['name'])
+                        credits.append(person['category'])
+                        principals_nameID.append(person['nameID'])
+                        principals_image.append(person['Image'])
+
+                return templates.TemplateResponse("movie.html", {"request": request, "title": title, "genres":genre_titles, "akas": akas_formatted, "directors": directors, "writers": writers, 
+                                                                    "actors": actors, "actors_image":actors_image, "actor_nameID": actor_nameID, "characters": characters,
+                                                                    "principals": principals, "credits": credits, "principals_nameID":principals_nameID, "principals_image":principals_image})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# New endpoint for viewing person details in HTML 
+@router.get("/person_html/{name_id}", response_class=HTMLResponse)
+async def person_details_html(request: Request, name_id: str):
+    try:
+        async with await get_database_connection() as db_connection:
+            async with db_connection.cursor(aiomysql.DictCursor) as cursor:
+                try:
+                    await cursor.execute("""SELECT `ID`, `Name`, `Image`, `Birth_Year`, `Death_Year` 
+                                        FROM `Person`
+                                        WHERE `Name_ID` = %s;""", (name_id))
+                except Exception as e: 
+                    print(f"Error: {e}")
+                person = await cursor.fetchone()
+                if not person: 
+                    raise HTTPException(status_code=404, detail="No person found")
+                
+                person_ID = person["ID"]
+                try:
+                    await cursor.execute("""SELECT T.`Title_ID`, T.`Original_Title`, T.`IMAGE`, T.`Average_Rating`, pi.`Job_Category`
+                                        FROM `person` P
+                                        INNER JOIN `participates_in` pi ON P.`ID` = pi.`Name_FK`
+                                        INNER JOIN `title` T ON pi.`Title_FK` = T.`ID`
+                                        WHERE P.`ID` = %s;""", (person_ID,))
+                except Exception as e: 
+                    print(f"Error: {e}")
+                titles = await cursor.fetchall()
+                if not titles: 
+                    raise HTTPException(status_code=404, detail="No movies found")
+
+                try:
+                    await cursor.execute("""SELECT pr.`Profession`
+                                        FROM `person` P 
+                                        INNER JOIN `profession_person` pp ON P.`ID` = pp.`Name_FK`
+                                        INNER JOIN `profession` pr ON pp.`Profession_FK` = pr.`ID`
+                                        WHERE P.`ID` = %s;""", (person_ID,))
+                except Exception as e: 
+                    print(f"Error: {e}")
+                prof = await cursor.fetchall()
+                if not prof: 
+                    raise HTTPException(status_code=404, detail="No professions found")
+                profession = []
+                for item in prof: 
+                    dummy = item['Profession'].capitalize()
+                    profession.append(dummy)
+
+                return templates.TemplateResponse("person.html", {"request": request, "person": person, "titles": titles, "profession": profession})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 

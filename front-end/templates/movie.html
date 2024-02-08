@@ -73,7 +73,7 @@
                         {% endif %}
                     </div>
                     <div class="row g-0" style="padding-bottom:25px;">
-                        <h5 class="subtitle">{{ title.Type }}</h5>
+                        <h5 class="subtitle">{{ title.Type.capitalize() }}</h5>
                     </div>
                     <div class="row g-0" style="padding-bottom:25px;">
                         {% if genres %}
@@ -164,7 +164,7 @@
 
                             
                             <!-- Person's role in the movie-->
-                            <p class="job">{{ credits[i] }}</p>
+                            <p class="job">{{ credits[i].capitalize() }}</p>
                         </div>
                     </div>
                     </a>
