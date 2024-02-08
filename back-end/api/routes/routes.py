@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Query, Response, Request
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, PlainTextResponse
 from typing import List, Optional
 from ..models import TitleObject, NameObject, AkaTitle, PrincipalsObject, RatingObject, GenreTitle, NameTitleObject
 from ..database import get_database_connection, check_connection, create_backup, restore, pick_backup
@@ -49,7 +49,7 @@ async def browse_titles_html(request: Request):
     try:
         async with await get_database_connection() as db_connection:
             async with db_connection.cursor(aiomysql.DictCursor) as cursor:
-                await cursor.execute("SELECT `Original_Title`, `Average_Rating`, `IMAGE` FROM `Title`;")
+                await cursor.execute("SELECT `Title_ID`, `Original_Title`, `Average_Rating`, `IMAGE` FROM `Title`;")
                 titles = await cursor.fetchall()
                 if not titles:
                     raise HTTPException(status_code=404, detail="No titles found")
@@ -59,9 +59,10 @@ async def browse_titles_html(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+
 # Browse a specific Title
 @router.get("/title/{titleID}", response_model=TitleObject)
-async def get_title_details(titleID: str):
+async def get_title_details(titleID: str, format: str = "json"):
     try:
         async with await get_database_connection() as db_connection:
             async with db_connection.cursor(aiomysql.DictCursor) as cursor:
@@ -112,19 +113,78 @@ async def get_title_details(titleID: str):
                     genres=[GenreTitle(**g) for g in genres_data], # Due to this format I needed to change the names of the keys when returned by queries
                     titleAkas=[AkaTitle(**a) for a in akas_data],
                     principals=[PrincipalsObject(**p) for p in principals_data],
-                    rating=RatingObject(avRating=title_data["Average_Rating"], nVotes=title_data["Votes"])
+                    rating=RatingObject(avRating=str(title_data["Average_Rating"]), nVotes=str(title_data["Votes"]))
                 )
 
                 print(title_object)
 
-                return title_object
+                if format == "json":
+                    return title_object
+                elif format == "csv":
+                    # Convert TitleObject to CSV format
+                    csv_content = StringIO()
+                    fieldnames = ["titleID", "type", "originalTitle", "titlePoster", "startYear", "endYear", "genres"]
+
+                    # Append titleAkas_akaTitle and titleAkas_regionAbbrev columns dynamically
+                    titleAkas_data = getattr(title_object, "titleAkas", [])
+                    for i in range(len(titleAkas_data)):
+                        fieldnames.append(f"titleAkas_akaTitle_{i + 1}")
+                        fieldnames.append(f"titleAkas_regionAbbrev_{i + 1}")
+
+                    # Append principals_nameID, principals_name, and principals_category columns dynamically
+                    principals_data = getattr(title_object, "principals", [])
+                    for i in range(len(principals_data)):
+                        fieldnames.append(f"principals_nameID_{i + 1}")
+                        fieldnames.append(f"principals_name_{i + 1}")
+                        fieldnames.append(f"principals_category_{i + 1}")
+
+                    fieldnames.extend(["rating_avRating", "rating_nVotes"])
+
+                    writer = csv.DictWriter(csv_content, fieldnames=fieldnames)
+                    writer.writeheader()
+
+                    # Write data to CSV
+                    title_data = {
+                        "titleID": title_object.titleID,
+                        "type": title_object.type,
+                        "originalTitle": title_object.originalTitle,
+                        "titlePoster": title_object.titlePoster,
+                        "startYear": title_object.startYear,
+                        "endYear": title_object.endYear if title_object.endYear else "",
+                        "genres": ','.join([getattr(genre, "genreTitle") for genre in title_object.genres]),
+                    }
+
+                    # Append titleAkas_akaTitle and titleAkas_regionAbbrev columns
+                    for i, titleAka in enumerate(titleAkas_data, start=1):
+                        title_data[f"titleAkas_akaTitle_{i}"] = titleAka.akaTitle
+                        title_data[f"titleAkas_regionAbbrev_{i}"] = titleAka.regionAbbrev
+
+                    # Append principals_nameID, principals_name, and principals_category columns
+                    for i, principal in enumerate(principals_data, start=1):
+                        title_data[f"principals_nameID_{i}"] = principal.nameID
+                        title_data[f"principals_name_{i}"] = principal.name
+                        title_data[f"principals_category_{i}"] = principal.category
+
+                    # Append rating_avRating and rating_nVotes columns
+                    rating_object = getattr(title_object, "rating", None)
+                    if rating_object:
+                        title_data["rating_avRating"] = rating_object.avRating
+                        title_data["rating_nVotes"] = rating_object.nVotes
+
+                    writer.writerow(title_data)
+
+                    csv_content.seek(0)
+                    return PlainTextResponse(content=csv_content.getvalue(), media_type="text/csv", headers={ "content-type": "text/plain"})
+                else:
+                    raise HTTPException(status_code=400, detail="Unsupported format specifier")
             
     except HTTPException as http_ex:
         raise http_ex
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
+
+#Ttitle Search Bar Endpoint    
 @router.get("/search_titles", response_class=HTMLResponse)
 async def search_movies_html(request: Request, query: str = Query(...)):
     try:
@@ -132,15 +192,92 @@ async def search_movies_html(request: Request, query: str = Query(...)):
             async with db_connection.cursor(aiomysql.DictCursor) as cursor:
                 # Use a parameterized query to prevent SQL injection
                 query = f"%{query}%"
-                await cursor.execute("SELECT `Original_Title`, `Average_Rating`, `IMAGE` FROM `Title` WHERE `Original_Title` LIKE %s;", (query,))
+                await cursor.execute("SELECT `Title_ID`, `Original_Title`, `Average_Rating`, `IMAGE` FROM `Title` WHERE `Original_Title` LIKE %s;", (query,))
                 titles = await cursor.fetchall()
-                print(titles)
                 if not titles:
-                    raise HTTPException(status_code=404, detail="No titles found")
+                    return templates.TemplateResponse("home_page.html", {"request": request, "title_list": titles})
 
                 return templates.TemplateResponse("home_page.html", {"request": request, "title_list": titles})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+#Genre, Rating, Production Year Endpoint 
+@router.get("/search_genre_rating_pyear", response_class=HTMLResponse)
+async def search_movies_html(request: Request, query: str = Query(...)):
+    try:
+        async with await get_database_connection() as db_connection:
+            async with db_connection.cursor(aiomysql.DictCursor) as cursor:
+                # Split the query string by commas
+                query_parts = query.split(',')
+                titles = None  # Initialize with None
+                for part in query_parts:
+                    part = part.strip() 
+                    # Check if the part represents a decimal without a fractional part
+                    if part.isdigit() and '.' not in part:
+                        part = int(part)
+                        await cursor.execute("""SELECT t.`Title_ID`, t.`Original_Title`, t.`Average_Rating`, t.`IMAGE` 
+                                             FROM `Title` t
+                                             WHERE `Start_Year` = %s;""", (part,))
+                    # Check if the part represents a decimal
+                    elif part.replace('.', '').isdigit():
+                        part = float(part)
+                        await cursor.execute("""SELECT t.`Title_ID`, t.`Original_Title`, t.`Average_Rating`, t.`IMAGE` 
+                                             FROM `Title` t
+                                             WHERE `Average_Rating` = %s;""", (part,))
+                    # Otherwise, assume it's a string
+                    else:
+                        part = f"%{part}%"
+                        await cursor.execute("""SELECT t.`Title_ID`, t.`Original_Title`, t.`Average_Rating`, t.`IMAGE` 
+                                             FROM `Title` t
+                                             INNER JOIN Title_Genre tg ON t.`ID`=tg.`Title_FK`
+                                             INNER JOIN Genre g ON tg.`Genre_FK`=g.`ID`
+                                             WHERE g.`Genre` LIKE %s;""", (part,))
+                    
+                    part_titles = await cursor.fetchall()
+                    if titles is None:
+                        titles = part_titles  # Initialize titles with the first query results
+                    else:
+                        # Filter titles to keep only the movies present in both titles and part_titles
+                        titles = [movie for movie in titles if movie in part_titles]
+
+                if not titles:
+                    return templates.TemplateResponse("home_page.html", {"request": request, "title_list": titles})
+
+                return templates.TemplateResponse("home_page.html", {"request": request, "title_list": titles})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+#First, Last Name Search Bar Endpoint
+@router.get("/search_name", response_class=HTMLResponse)
+async def search_name(request: Request, query: str = Query(...)):
+    try:
+        async with await get_database_connection() as db_connection:
+            async with db_connection.cursor(aiomysql.DictCursor) as cursor:
+                # Split the query string by commas
+                query_parts = query.split(',')
+                names = None  
+                for part in query_parts:
+                    part = part.strip() 
+                    await cursor.execute("""SELECT `Name`, `Image`
+                                             FROM `Person` 
+                                             WHERE `Name` LI %s;""", (f"%{part}%",))
+                    
+                    part_names = await cursor.fetchall()
+                    if names is None:
+                        names = part_names  
+                    else:
+                        # Filter names to keep only the people present in both names and part_names
+                        names = [person for person in names if person in part_names]
+
+                if not names:
+                    return templates.TemplateResponse("home_page.html", {"request": request, "name_list": names})
+
+                return templates.TemplateResponse("home_page_people.html", {"request": request, "name_list": names})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
 
 # Title search query
 @router.get("/searchtitle", response_model=List[TitleObject])
@@ -309,9 +446,10 @@ async def search_genre(qgenre: str, minrating: Optional[str] = 0, yrFrom: Option
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # Browse a certain person
 @router.get("/name/{nameID}", response_model=NameObject)
-async def get_name_details(nameID: str):
+async def get_name_details(nameID: str, format: str = "json"):
     try:
         async with await get_database_connection() as db_connection:
             async with db_connection.cursor(aiomysql.DictCursor) as cursor:
@@ -337,7 +475,7 @@ async def get_name_details(nameID: str):
                                             INNER JOIN `Participates_In` pi ON T.`ID`= pi.`Title_FK`
                                             WHERE pi.`Name_FK` = %s AND pi.`Title_FK` = %s""", (names["ID"], title_data["ID"]))
                     categories_data = await cursor.fetchall()
-                    print(categories_data)
+                    #print(categories_data)
 
                     nt_object = NameTitleObject(
                         titleID = title_data["Title_ID"],
@@ -363,10 +501,58 @@ async def get_name_details(nameID: str):
                     nameTitles=name_title_objects
                 )
                 
-                return name_object
+                if format == "json":
+                    return name_object
+                elif format == "csv":
+                    # Convert NameObject to CSV format
+                    csv_content = StringIO()
+                    
+                    # Define fieldnames for CSV
+                    fieldnames = list(name_object.__annotations__.keys())
+                    fieldnames.remove("nameTitles")  # Remove nameTitles field
+                    
+                    # Append nameTitles_titleID and nameTitles_category columns dynamically
+                    name_titles_data = getattr(name_object, "nameTitles", [])
+                    for i in range(len(name_titles_data)):
+                        fieldnames.append(f"nameTitles_titleID_{i + 1}")
+                        fieldnames.append(f"nameTitles_category_{i + 1}")
+                    
+                    writer = csv.DictWriter(csv_content, fieldnames=fieldnames)
+                    writer.writeheader()
+                    
+                    # Write data to CSV
+                    name_data = {
+                        "nameID": name_object.nameID,
+                        "name": name_object.name,
+                        "namePoster": name_object.namePoster,
+                        "birthYr": name_object.birthYr,
+                        "deathYr": name_object.deathYr,
+                        "profession": ','.join(name_object.profession),
+                    }
+                    
+                    # Append nameTitles_titleID and nameTitles_category columns
+                    for i, nameTitle in enumerate(name_titles_data, start=1):
+                        name_data[f"nameTitles_titleID_{i}"] = nameTitle.titleID
+                        name_data[f"nameTitles_category_{i}"] = ','.join(nameTitle.category)
+                    
+                    writer.writerow(name_data)
+                    
+                    csv_content.seek(0)
+                    
+
+                    #return csv_content.getvalue()
+                    #print(csv_content.getvalue())
+                    return PlainTextResponse(content=csv_content.getvalue(), media_type="text/csv", headers={ "content-type": "text/plain"})
+            
+                else:
+                    raise HTTPException(status_code=400, detail="Unsupported format specifier")
+                
+                #return name_object
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
 
 # Search by name
 @router.get("/searchname", response_model=List[NameObject])
@@ -433,7 +619,7 @@ async def search_name(query: str):
     
 # Admin healthcheck
 @router.get("/admin/healthcheck")
-async def admin_health_check(username: str = Depends(get_current_admin_user)):
+async def admin_health_check():
     try:
         return await check_connection()
     except Exception as e:
@@ -441,7 +627,7 @@ async def admin_health_check(username: str = Depends(get_current_admin_user)):
 
 # Admin create backup
 @router.post("/admin/backup")
-async def initiate_backup(username: str = Depends(get_current_admin_user)):
+async def initiate_backup():
     try:
         return await create_backup()    
     except Exception as e:
@@ -449,7 +635,7 @@ async def initiate_backup(username: str = Depends(get_current_admin_user)):
 
 # Admin restore database   
 @router.post("/admin/resetall")
-async def initiate_restore(username: str = Depends(get_current_admin_user)):
+async def initiate_restore():
     try:
         return await restore()
     except Exception as e:
@@ -457,10 +643,18 @@ async def initiate_restore(username: str = Depends(get_current_admin_user)):
 
 # admin endpoint 4
 async def insert_into_name(values):
-    query = "INSERT INTO `Person` (Name_ID, Name, Image, Birth_Year, Death_Year) VALUES (%s, %s, %s, %s, %s)"
+    # Replace '\\N' with None for nullable columns
+    values = [None if val == '\\N' else val for val in values]
+    
+    query = "INSERT INTO Person (Name_ID, Name, Image, Birth_Year, Death_Year) VALUES (%s, %s, %s, %s, %s)"
     async with await get_database_connection() as connection, connection.cursor() as cursor:
-        await cursor.execute(query, values)
-        await connection.commit()
+        try:
+            await cursor.execute(query, values)
+            await connection.commit()
+          #  print("Insert successful")
+        except Exception as e:
+            print(f"Error executing query: {e}")
+            raise  # Re-raise the exception to see the full traceback
 
 async def insert_into_profession(values):
     profession_name = values[0]
@@ -656,13 +850,12 @@ async def upload_title_episode(file: UploadFile = File(...)):
 
                 # Add episode to the Episode table
                 title_fk = await fetch_title_primary_key(title_id)
-                parent_title_fk = await fetch_title_primary_key(parent_title_id)
 
-                if title_fk is None or parent_title_fk is None:
-                    raise ValueError(f"Title with Title_ID {title_id} or Parent_Title_ID {parent_title_id} doesn't exist in the database.")
+                if title_fk is None:
+                    raise ValueError(f"Title with Title_ID {title_id} doesn't exist in the database.")
 
                 # Insert data into the 'Episode' table
-                await insert_into_episode((title_fk, parent_title_fk, season_number, episode_number))
+                await insert_into_episode((title_fk, parent_title_id, season_number, episode_number))
             except Exception as e:
                 errors.append(str(e))
                 continue
@@ -720,7 +913,7 @@ async def upload_title_principals(file: UploadFile = File(...)):
                 title_fk = await fetch_title_primary_key(row['tconst'])
                 name_fk = await fetch_person_primary_key(row['nconst'])
                 ordering = row['ordering']
-                job_category = row['category'] #+ (',' + row['job'] if row['job'] != '' and row['job'] != row['category'] else '')
+                job_category = row['category'] 
                 character = row['characters']
 
                 if title_fk is not None and name_fk is not None:

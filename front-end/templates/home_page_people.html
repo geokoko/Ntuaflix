@@ -77,41 +77,20 @@
 
             <!--This section contains all the movies we show in the home page-->
             <div id="movieListContainer" class="row row-cols-3 gx-5 gy-5" style="margin-top:151px;">
-                {% for title in title_list %}
-                    <div class="col-sm-4 mb-3">
-                        <a href="" class="card-link" style="text-decoration:none;">
-                        <div class="card bg shadow-lg" style="max-width:307px; background-color:#281844;">
-                            {% if title.IMAGE is not none %}
-                                <img class="img-fluid rounded" src="{{ title.IMAGE | replace('{width_variable}', 'w500') }}" alt="Movie Image">
-                            {% else %}
-                                <img class="no-image-placeholder" src="{{url_for('static', path='sad-popcorn.png')}}" style="max-width:307px; height:350px;">
-                                <div class="row g-0" style="height:45px; text-align:center; padding:8px; background-color:white;">
-                                    <h4 style="color:black; font-weight:800">No Image Available
-                                    </h4>
+                {% for name in name_list %}
+                <div class="col-sm-4 mb-3">
+                    <div class="card bg shadow-lg" style="max-width:307px; background-color:#281844;">
+                        <img class="img-fluid rounded" src="{{ name.Image | replace('{width_variable}', 'w500') }}">
+                        <div class="card-body">
 
-                                </div>
-                            {% endif %}
-                            <div class="card-body">
-                                <div class="row g-0">
-                                    <div class="col-9">
-                                        <h4 class="card-title">{{ title.Original_Title }}</h4>
-                                    </div>
-                                    <div class="col-3">
-                                        <div class="rating text-end">
-                                            {% if title.Average_Rating is not none %}
-                                                <span class="rating-value" style="color:white">{{ title.Average_Rating }}</span>
-                                                <i class="fa fa-star" style="color:yellow;"></i>
-                                            {% else %}
-                                                <span class="rating-value" style="color:white">-</span>
-                                                <i class="fa fa-star" style="color:yellow;"></i>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <!-- Person's name -->
+                            <h4 class="card-title">{{ name.Name }}</h4>
+
+                            <!-- Link to person's page -->
+                            <a class="stretched-link" href="person.html"></a>
                         </div>
-                        </a>
                     </div>
+                </div>
                 {% endfor %}
             </div>
 
@@ -124,8 +103,6 @@
             // Function to make an asynchronous request to the backend
             async function searchMovies(query) {
                 try {
-                    //const response = await fetch(`/ntuaflix_api/search_titles?query=${query}`);
-                    //const data = await response.json();
     
                     window.location.href = `/ntuaflix_api/search_titles?query=${query}`;
     

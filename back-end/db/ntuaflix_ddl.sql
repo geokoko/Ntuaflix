@@ -57,8 +57,8 @@ CREATE TABLE `Person` (
   `Name_ID` varchar(255) NOT NULL UNIQUE,
   `Name` varchar(255) DEFAULT NULL,
   `Image` varchar(255) DEFAULT NULL,
-  `Birth_Year` smallint DEFAULT NULL,
-  `Death_Year` smallint DEFAULT NULL,
+  `Birth_Year` int DEFAULT NULL,
+  `Death_Year` int DEFAULT NULL,
   PRIMARY KEY (`ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
