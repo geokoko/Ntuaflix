@@ -145,6 +145,7 @@ def name(args):
 #In order to correclty check and handle the API responses
 def handle_response(response, format):
     if response.status_code == 200:
+        print("Status Code 200")
         if format == 'json':
             print(response.json())
         elif format == "csv":
@@ -221,3 +222,5 @@ if __name__ == "__main__":
     elif args.scope == "newprincipals":
         if not args.filename:
             print("Error: --filename is a mandatory parameter for the 'newprincipals' scope.")
+        else:
+            newprincipals(args)

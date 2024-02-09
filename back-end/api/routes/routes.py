@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Query, Response, Request
+from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Query, Response, Request, status
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, FileResponse, PlainTextResponse
 from typing import List, Optional
@@ -802,22 +802,26 @@ async def initiate_restore():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# admin endpoint 4
+
+#Admin Endpoint 4
 async def insert_into_name(values):
     # Replace '\\N' with None for nullable columns
-    values = [None if val == '\\N' else val for val in values]
+    values = [None if (val == '\\N' or val == '/N') else val for val in values]
+
     
     query = "INSERT INTO Person (Name_ID, Name, Image, Birth_Year, Death_Year) VALUES (%s, %s, %s, %s, %s)"
     async with await get_database_connection() as connection, connection.cursor() as cursor:
         try:
             await cursor.execute(query, values)
             await connection.commit()
-          #  print("Insert successful")
+            print("Insert into 'Person' successful")
         except Exception as e:
             print(f"Error executing query: {e}")
             raise  # Re-raise the exception to see the full traceback
 
 async def insert_into_profession(values):
+    
+    values = [None if (val == '\\N' or val == '/N') else val for val in values]
     profession_name = values[0]
 
     # Check if the profession already exists in the 'Profession' table
@@ -829,20 +833,32 @@ async def insert_into_profession(values):
         if result:
             # If the profession already exists, return its ID
             return result[0]
+        
         else:
             # If the profession doesn't exist, insert it into the 'Profession' table
             query_insert = "INSERT INTO `Profession` (Profession) VALUES (%s)"
             await cursor.execute(query_insert, (profession_name,))
             await connection.commit()
+            print("Insert into 'Profession' successful")
 
             # Return the ID of the profession (existing or newly inserted)
             return await fetch_profession_primary_key(profession_name)
 
+
 async def insert_into_profession_person(values):
+    values = [None if (val == '\\N' or val == '/N') else val for val in values]
+    
     query = "INSERT INTO `Profession_Person` (Profession_FK, Name_FK) VALUES (%s, %s)"
     async with await get_database_connection() as connection, connection.cursor() as cursor:
-        await cursor.execute(query, values)
-        await connection.commit()
+
+        try:
+            await cursor.execute(query, values)
+            await connection.commit()
+            print("Insert into 'Profession_Person' successful")
+        except Exception as e:
+            print(f"Error executing query: {e}")
+            raise  # Re-raise the exception to see the full traceback
+        
 
 async def fetch_profession_primary_key(profession_name):
     query = "SELECT `ID` FROM `Profession` WHERE `Profession` = %s LIMIT 1"
@@ -892,8 +908,10 @@ async def upload_name_basics(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# admin endpoint 5
+#Admin Endpoint 5
 async def check_existing_participation(name_fk, title_fk, job_category):
+    values = [None if (val == '\\N' or val == '/N') else val for val in values]
+
     query = "SELECT 1 FROM `Participates_In` WHERE `Name_FK` = %s AND `Title_FK` = %s AND `Job_Category` = %s LIMIT 1"
     async with await get_database_connection() as connection, connection.cursor() as cursor:
         await cursor.execute(query, (name_fk, title_fk, job_category))
@@ -912,8 +930,8 @@ async def upload_title_crew(file: UploadFile = File(...)):
         # Iterate over DataFrame rows and insert data into the database
         for _, row in df.iterrows():
             title_id = row['tconst']
-            directors = row['directors'].split(',') if row['directors'] and row['directors'] != '\\N' else []
-            writers = row['writers'].split(',') if row['writers'] and row['writers'] != '\\N' else []
+            directors = row['directors'].split(',') if row['directors'] and (row['directors'] != '\\N' or row['directors'] != '/N') else []
+            writers = row['writers'].split(',') if row['writers'] and (row['writers'] != '\\N' or row["writers"] != '/N') else []
 
             # Process directors
             for director_id in directors:
@@ -931,6 +949,7 @@ async def upload_title_crew(file: UploadFile = File(...)):
                     # Check if the entry already exists in the 'Participates_In' table
                     existing_director_entry = await check_existing_participation(director_name_fk, title_fk, 'director')
                     if existing_director_entry:
+                        print("Entry already exists, skip insertion")
                         # Entry already exists, skip insertion
                         continue
 
@@ -956,6 +975,7 @@ async def upload_title_crew(file: UploadFile = File(...)):
                     # Check if the entry already exists in the 'Participates_In' table
                     existing_writer_entry = await check_existing_participation(writer_name_fk, title_fk, 'writer')
                     if existing_writer_entry:
+                        print("Entry already exists, skip insertion")
                         # Entry already exists, skip insertion
                         continue
 
@@ -968,6 +988,7 @@ async def upload_title_crew(file: UploadFile = File(...)):
         if errors:
             # If there are errors, raise an HTTPException with the collected error messages
             error_message = "\n".join(errors)
+            print(error_message)
             raise HTTPException(status_code=500, detail=error_message)
 
         return {"message": "File uploaded and data stored successfully"}
@@ -975,18 +996,49 @@ async def upload_title_crew(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# admin endpoint 6
+
+#Admin Endpoint 6
 async def insert_into_title(values):
-    query = "INSERT INTO `Title` (Title_ID, Original_Title, Type) VALUES (%s, %s, %s)"
+
+    query_select = "SELECT * FROM `Title` WHERE Title_ID = %s"
+    query_insert = "INSERT INTO `Title` (Title_ID, Original_Title,Type) VALUES (%s, %s, %s)"
     async with await get_database_connection() as connection, connection.cursor() as cursor:
-        await cursor.execute(query, values)
-        await connection.commit()
+    
+        # Start a transaction
+        await connection.begin()
+        
+        try:
+            values = [None if (v == '\\N' or v == '/N') else v for v in values]
+            # Check if the Title_ID already exists
+            await cursor.execute(query_select, (values[0],))
+            existing_row = await cursor.fetchone()
+
+            # If the Title_ID already exists, roll back the transaction
+            if existing_row:
+                print(f"Duplicate entry for Title_ID: {values[0]}")
+                await connection.rollback()
+                return
+
+            # If the Title_ID doesn't exist, proceed with insertion
+            await cursor.execute(query_insert, values)
+            await connection.commit()
+        except Exception as e:
+            # If any error occurs during insertion, roll back the transaction
+            await connection.rollback()
+            raise e
+
 
 async def insert_into_episode(values):
     query = "INSERT INTO `Episode` (Title_FK, Parent_Title_FK, Season, Episode_Num) VALUES (%s, %s, %s, %s)"
     async with await get_database_connection() as connection, connection.cursor() as cursor:
-        await cursor.execute(query, values)
-        await connection.commit()
+        try:
+            values = [None if (v == '\\N' or v == '/N') else v for v in values]
+            await cursor.execute(query, values)
+            await connection.commit()
+            print("Insert successful")
+        except Exception as e:
+            print(f"Error executing query: {e}")
+            raise  # Re-raise the exception to see the full traceback
 
 
 @router.post("/admin/upload/titleepisode")
@@ -1007,7 +1059,7 @@ async def upload_title_episode(file: UploadFile = File(...)):
 
             try:
                 # Add episode to the Title table
-                await insert_into_title((title_id, title_id, 'episode'))
+                await insert_into_title((title_id, '','tvEpisode'))
 
                 # Add episode to the Episode table
                 title_fk = await fetch_title_primary_key(title_id)
@@ -1031,17 +1083,18 @@ async def upload_title_episode(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-#admin endpoint 7
+#Admin Endpoint 7
 async def insert_into_participates_in(values):
     query = "INSERT INTO `Participates_In` (Title_FK, Name_FK, Ordering, Job_Category, `Character`) VALUES (%s, %s, %s, %s, %s)"
     async with await get_database_connection() as connection, connection.cursor() as cursor:
         try:
+            values = [None if (v == '\\N' or v == '/N') else v for v in values]
             await cursor.execute(query, values)
             await connection.commit()
             print("Insert successful")
         except Exception as e:
             print(f"Error executing query: {e}")
-            raise  # Re-raise the exception to see the full traceback
+            raise  HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
         
 async def fetch_title_primary_key(tconst):
     query = "SELECT `ID` FROM `Title` WHERE `Title_ID` = %s LIMIT 1"
@@ -1063,11 +1116,22 @@ async def fetch_person_primary_key(nconst):
         else:
             return None
 
+
 @router.post("/admin/upload/titleprincipals")
 async def upload_title_principals(file: UploadFile = File(...)):
     try:
+        # Check if the uploaded file is of the correct format
+        if not file.filename.endswith(".tsv"):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uploaded file must be in TSV format")
+        
         # Read the TSV file into a DataFrame
         df = pd.read_csv(file.file, sep='\t', low_memory=False)
+        
+        expected_columns = ['tconst', 'nconst', 'ordering', 'category', 'characters']
+
+        # Check if the DataFrame contains all the expected columns
+        if not all(column in df.columns for column in expected_columns):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uploaded file must contain columns: tconst, nconst, ordering, category, characters")
 
         # Iterate over DataFrame rows and insert data into the database
         for _, row in df.iterrows():
@@ -1078,24 +1142,26 @@ async def upload_title_principals(file: UploadFile = File(...)):
                 character = row['characters']
 
                 if title_fk is not None and name_fk is not None:
+                    values = (title_fk, name_fk, ordering, job_category, character)
                     await insert_into_participates_in((title_fk, name_fk, ordering, job_category, character))
                 else:
                     print("An error occurred")
 
-        return {"message": "File uploaded and data stored successfully"}
+        # Check if any data was inserted
+        if len(df) > 0:
+            return {"message": "File uploaded and data stored successfully"}, status.HTTP_200_OK
+        else:
+            return {"message": "No data provided in the file"}, status.HTTP_204_NO_CONTENT
 
     except Exception as e:
         print(f"An error occurred: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-    
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")    
 
-#admin endpoint 8
+#Admin Endpoint 8
 # Function to update data in the Title table
 async def update_title_ratings(title_id, average_rating, num_votes):
     query = "UPDATE `Title` SET `Average_Rating` = %s, `Votes` = %s WHERE `Title_ID` = %s"
     async with await get_database_connection() as connection, connection.cursor() as cursor:
-      #  await cursor.execute(query, (average_rating, num_votes, title_id))
-      #  await connection.commit()
 
         try:
             await cursor.execute(query, (average_rating, num_votes, title_id))
@@ -1103,25 +1169,46 @@ async def update_title_ratings(title_id, average_rating, num_votes):
             print("Insert successful")
         except Exception as e:
             print(f"Error executing query: {e}")
-            raise  # Re-raise the exception to see the full traceback
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+
 
 # Endpoint for uploading title ratings
 @router.post("/admin/upload/titleratings")
 async def upload_title_ratings(file: UploadFile = File(...)):
     try:
+        
+        # Check if the uploaded file is of the correct format
+        if not file.filename.endswith(".tsv"):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uploaded file must be in TSV format")
+        
         # Read the TSV file into a DataFrame
         df = pd.read_csv(file.file, sep='\t', low_memory=False)
+        
+        expected_columns = ['tconst', 'averageRating', 'numVotes']
+
+        # Check if the DataFrame contains all the expected columns
+        if not all(column in df.columns for column in expected_columns):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uploaded file must contain columns: tconst, nconst, ordering, category, characters")
 
         # Iterate over DataFrame rows and update data in the Title table
         for _, row in df.iterrows():
             title_id = row['tconst']
             average_rating = row['averageRating']
             num_votes = row['numVotes']
+            
+            # Check and replace null values with None
+            if average_rating == '/N' or average_rating == '\\N':
+                average_rating = None  
+            if num_votes == '/N' or num_votes == '\\N':
+                num_votes = None
 
             # Update the Title table
             await update_title_ratings(title_id, average_rating, num_votes)
 
-        return {"message": "File uploaded and data stored successfully"}
+        if len(df) > 0:
+            return {"message": "File uploaded and data stored successfully"}, status.HTTP_200_OK
+        else:
+            return {"message": "No data provided in the file"}, status.HTTP_204_NO_CONTENT
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
