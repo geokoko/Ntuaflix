@@ -79,17 +79,25 @@
             <div id="movieListContainer" class="row row-cols-3 gx-5 gy-5" style="margin-top:151px;">
                 {% for name in name_list %}
                 <div class="col-sm-4 mb-3">
+                    <a class="card-link" href="{{ url_for('person_details_html', name_id=name.Name_ID) }}" style="text-decoration:none;">
                     <div class="card bg shadow-lg" style="max-width:307px; background-color:#281844;">
-                        <img class="img-fluid rounded" src="{{ name.Image | replace('{width_variable}', 'w500') }}">
+                        {% if name.Image is not none %}
+                            <img class="img-fluid rounded" src="{{ name.Image | replace('{width_variable}', 'w500') }}">
+                        {% else %}
+                            <img class="no-image-placeholder" src="{{url_for('static', path='sad-popcorn.png')}}" style="max-width:307px; height:350px;">
+                                <div class="row g-0" style="height:45px; text-align:center; padding:8px; background-color:white;">
+                                    <h4 style="color:black; font-weight:800">No Image Available
+                                    </h4>
+
+                                </div>
+                        {% endif %}
                         <div class="card-body">
 
                             <!-- Person's name -->
                             <h4 class="card-title">{{ name.Name }}</h4>
-
-                            <!-- Link to person's page -->
-                            <a class="stretched-link" href="person.html"></a>
                         </div>
                     </div>
+                    </a>
                 </div>
                 {% endfor %}
             </div>

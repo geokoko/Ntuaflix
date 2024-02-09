@@ -427,9 +427,9 @@ async def search_name(request: Request, query: str = Query(...)):
                 names = None  
                 for part in query_parts:
                     part = part.strip() 
-                    await cursor.execute("""SELECT `Name`, `Image`
+                    await cursor.execute("""SELECT `Name`, `Image`, `Name_ID`
                                              FROM `Person` 
-                                             WHERE `Name` LI %s;""", (f"%{part}%",))
+                                             WHERE `Name` LIKE %s;""", (f"%{part}%",))
                     
                     part_names = await cursor.fetchall()
                     if names is None:
