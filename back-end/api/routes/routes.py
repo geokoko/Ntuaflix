@@ -808,6 +808,130 @@ async def initiate_restore():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# endpoint 2
+@router.post("/admin/upload/titlebasics")
+async def upload_title_basics(file: UploadFile = File(...)):
+    try:
+        # Read the TSV file into a DataFrame
+        df = pd.read_csv(file.file, sep='\t', low_memory=False)
+
+        # Iterate over DataFrame rows and insert data into the database
+        async with await get_database_connection() as connection, connection.cursor() as cursor:
+            for _, row in df.iterrows():
+                tconst = row['tconst']
+                title_type = row['titleType']
+                original_title = row['originalTitle']
+                is_adult = row['isAdult']
+                start_year = row['startYear'] if row['startYear'] != '\\N' else None
+                end_year = row['endYear'] if row['endYear'] != '\\N' else None
+                runtime_minutes = row['runtimeMinutes'] if row['runtimeMinutes'] != '\\N' else None
+                genres = row['genres'] if row['genres'] != '\\N' else None
+                image_url = row['img_url_asset'] if row['img_url_asset'] != '\\N' else None
+
+                # Insert data into the 'Title' table
+                query_title = """
+                    INSERT INTO `Title` (Title_ID, Type, Original_Title, IMAGE, Start_Year, End_Year, Runtime, isAdult)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """
+
+                await cursor.execute(query_title, (tconst, title_type, original_title, image_url,
+                                                   start_year, end_year, runtime_minutes, is_adult))
+
+                if genres is not None:  # Ensure genres column is not null
+                    genres_list = genres.split(',')
+                    for genre in genres_list:
+                        # Check if the genre exists in the 'Genre' table
+                        query_genre_check = "SELECT `ID` FROM `Genre` WHERE `Genre` = %s LIMIT 1"
+                        await cursor.execute(query_genre_check, (genre,))
+                        result_genre = await cursor.fetchone()
+
+                        if not result_genre:
+                            # If the genre doesn't exist, insert it into the 'Genre' table
+                            query_insert_genre = "INSERT INTO `Genre` (Genre) VALUES (%s)"
+                            await cursor.execute(query_insert_genre, (genre,))
+                            await connection.commit()
+                            # Fetch the primary key of the newly inserted genre
+                            query_fetch_genre_pk = "SELECT `ID` FROM `Genre` WHERE `Genre` = %s LIMIT 1"
+                            await cursor.execute(query_fetch_genre_pk, (genre,))
+                            genre_fk = await cursor.fetchone()
+                            if genre_fk:
+                                genre_fk = genre_fk[0]
+                        else:
+                            genre_fk = result_genre[0]
+
+                        if genre_fk:
+                            # Fetch the primary key of the title
+                            query_fetch_title_pk = "SELECT `ID` FROM `Title` WHERE `Title_ID` = %s LIMIT 1"
+                            await cursor.execute(query_fetch_title_pk, (tconst,))
+                            title_fk = await cursor.fetchone()
+                            if title_fk:
+                                title_fk = title_fk[0]
+                                # Insert data into the 'Title_Genre' table
+                                query_title_genre = "INSERT INTO `Title_Genre` (Title_FK, Genre_FK) VALUES (%s, %s)"
+                                await cursor.execute(query_title_genre, (title_fk, genre_fk))
+                                await connection.commit()
+
+            return {"message": "File uploaded and data stored successfully"}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# endpoint 3
+@router.post("/admin/upload/titleakas")
+async def upload_title_akas(file: UploadFile = File(...)):
+    try:
+        # Read the TSV file into a DataFrame
+        df = pd.read_csv(file.file, sep='\t', low_memory=False)
+
+        # Collect errors to include in the final response
+        errors = []
+
+        # Iterate over DataFrame rows and insert data into the database
+        async with await get_database_connection() as connection, connection.cursor() as cursor:
+            for _, row in df.iterrows():
+                title_id = row['titleId']
+                ordering = row['ordering']
+                title_aka = row['title']
+                region = row['region']
+
+                # Replace '\N' values with None
+                if title_id == '\\N':
+                    title_id = None
+                if ordering == '\\N':
+                    ordering = None
+                if title_aka == '\\N':
+                    title_aka = None
+                if region == '\\N':
+                    region = None
+
+                try:
+                    # Fetch the primary key of the title
+                    query_fetch_title_pk = "SELECT `ID` FROM `Title` WHERE `Title_ID` = %s LIMIT 1"
+                    await cursor.execute(query_fetch_title_pk, (title_id,))
+                    title_fk = await cursor.fetchone()
+                    if title_fk:
+                        title_fk = title_fk[0]
+                    else:
+                        raise ValueError(f"Title with Title_ID {title_id} doesn't exist in the database.")
+
+                    # Insert data into the 'Alt_Title' table
+                    query_insert_alt_title = "INSERT INTO `Alt_Title` (Title_FK, Ordering, Title_AKA, Region) VALUES (%s, %s, %s, %s)"
+                    await cursor.execute(query_insert_alt_title, (title_fk, ordering, title_aka, region))
+                    await connection.commit()
+                    
+                except Exception as e:
+                    errors.append(str(e))
+                    continue
+
+        if errors:
+            # If there are errors, raise an HTTPException with the collected error messages
+            error_message = "\n".join(errors)
+            raise HTTPException(status_code=500, detail=error_message)
+
+        return {"message": "File uploaded and data stored successfully"}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 #Admin Endpoint 4
 async def insert_into_name(values):
