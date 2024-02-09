@@ -219,7 +219,13 @@ async def person_details_html(request: Request, name_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
+# New endpoint for HTML page concerning uploads of TSV files 
+@router.get("/uploads_html", response_class=HTMLResponse)
+async def uploads_html(request: Request): 
+    try:
+        return templates.TemplateResponse("uploads.html", {"request": request})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Browse a specific Title
 @router.get("/title/{titleID}", response_model=TitleObject)
