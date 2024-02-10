@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Query, Response, Request, status
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, FileResponse, PlainTextResponse
+from fastapi.responses import HTMLResponse, FileResponse, PlainTextResponse, JSONResponse
 from typing import List, Optional
 from ..models import TitleObject, NameObject, AkaTitle, PrincipalsObject, RatingObject, GenreTitle, NameTitleObject
 from ..database import get_database_connection, check_connection, create_backup, restore, pick_backup
@@ -229,7 +229,10 @@ async def uploads_html(request: Request):
 
 # Browse a specific Title
 @router.get("/title/{titleID}", response_model=TitleObject)
-async def get_title_details(titleID: str, format: str = "json"):
+async def get_title_details(titleID: str, format_type: str = "json"):
+    if format_type not in ["json", "csv"]:
+        raise HTTPException(status_code=400, detail="Unsupported format specifier")
+
     try:
         async with await get_database_connection() as db_connection:
             async with db_connection.cursor(aiomysql.DictCursor) as cursor:
@@ -237,7 +240,7 @@ async def get_title_details(titleID: str, format: str = "json"):
                 await cursor.execute("SELECT * FROM `Title` WHERE `Title_ID` = %s;", (titleID,))
                 title_data = await cursor.fetchone()
                 if not title_data:
-                    raise HTTPException(status_code=404, detail="Title not found")
+                    raise HTTPException(status_code=204, detail="Data not found")
                 
                 print(title_data)
                 primary_key = title_data["ID"]
@@ -283,65 +286,33 @@ async def get_title_details(titleID: str, format: str = "json"):
                     rating=RatingObject(avRating=str(title_data["Average_Rating"]), nVotes=str(title_data["Votes"]))
                 )
 
-                print(title_object)
-
-                if format == "json":
+                if format_type == "json":
                     return title_object
-                elif format == "csv":
-                    # Convert TitleObject to CSV format
-                    csv_content = StringIO()
-                    fieldnames = ["titleID", "type", "originalTitle", "titlePoster", "startYear", "endYear", "genres"]
+                elif format_type == "csv":
+                    title_data = [{
+                            'tconst': title_object.titleID,
+                            'Type': title_object.type,
+                            'Original Title': title_object.originalTitle,
+                            'Title Poster': title_object.titlePoster,
+                            'Start Year': title_object.startYear,
+                            'End Year': title_object.endYear,
+                            'Genres': ", ".join(['' if g.genreTitle is None else str(g.genreTitle) for g in title_object.genres]), # Cannot perform join operation if object is None Type
+                            'Title Akas': ", ".join([f"{'' if a.akaTitle is None else str(a.akaTitle)} ({'' if a.regionAbbrev is None else str(a.regionAbbrev)})" for a in title_object.titleAkas]),
+                            'Principals': ", ".join([f"{'' if p.name is None else str(p.name)} ({'' if p.nameID is None else str(p.name)}) ({'' if p.category is None else str(p.category)})" for p in title_object.principals]),
+                            'AvgRating': title_object.rating.avRating,
+                            'nVotes': title_object.rating.nVotes
+                        }]
 
-                    # Append titleAkas_akaTitle and titleAkas_regionAbbrev columns dynamically
-                    titleAkas_data = getattr(title_object, "titleAkas", [])
-                    for i in range(len(titleAkas_data)):
-                        fieldnames.append(f"titleAkas_akaTitle_{i + 1}")
-                        fieldnames.append(f"titleAkas_regionAbbrev_{i + 1}")
+                    df = pd.DataFrame(title_data)
+                    columns_order = ['tconst', 'Type', 'Original Title', 'Title Poster', 'Start Year', 'End Year', 'Genres', 'Title Akas', 'Principals', 'AvgRating', 'nVotes']
+                    df = df[columns_order]
 
-                    # Append principals_nameID, principals_name, and principals_category columns dynamically
-                    principals_data = getattr(title_object, "principals", [])
-                    for i in range(len(principals_data)):
-                        fieldnames.append(f"principals_nameID_{i + 1}")
-                        fieldnames.append(f"principals_name_{i + 1}")
-                        fieldnames.append(f"principals_category_{i + 1}")
+                    output = StringIO()
+                    df.to_csv(output, index=False)
+                    output.seek(0)
 
-                    fieldnames.extend(["rating_avRating", "rating_nVotes"])
+                    return Response(content=output.getvalue(), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=search_results.csv"})
 
-                    writer = csv.DictWriter(csv_content, fieldnames=fieldnames)
-                    writer.writeheader()
-
-                    # Write data to CSV
-                    title_data = {
-                        "titleID": title_object.titleID,
-                        "type": title_object.type,
-                        "originalTitle": title_object.originalTitle,
-                        "titlePoster": title_object.titlePoster,
-                        "startYear": title_object.startYear,
-                        "endYear": title_object.endYear if title_object.endYear else "",
-                        "genres": ','.join([getattr(genre, "genreTitle") for genre in title_object.genres]),
-                    }
-
-                    # Append titleAkas_akaTitle and titleAkas_regionAbbrev columns
-                    for i, titleAka in enumerate(titleAkas_data, start=1):
-                        title_data[f"titleAkas_akaTitle_{i}"] = titleAka.akaTitle
-                        title_data[f"titleAkas_regionAbbrev_{i}"] = titleAka.regionAbbrev
-
-                    # Append principals_nameID, principals_name, and principals_category columns
-                    for i, principal in enumerate(principals_data, start=1):
-                        title_data[f"principals_nameID_{i}"] = principal.nameID
-                        title_data[f"principals_name_{i}"] = principal.name
-                        title_data[f"principals_category_{i}"] = principal.category
-
-                    # Append rating_avRating and rating_nVotes columns
-                    rating_object = getattr(title_object, "rating", None)
-                    if rating_object:
-                        title_data["rating_avRating"] = rating_object.avRating
-                        title_data["rating_nVotes"] = rating_object.nVotes
-
-                    writer.writerow(title_data)
-
-                    csv_content.seek(0)
-                    return PlainTextResponse(content=csv_content.getvalue(), media_type="text/csv", headers={ "content-type": "text/plain"})
                 else:
                     raise HTTPException(status_code=400, detail="Unsupported format specifier")
             
@@ -351,13 +322,13 @@ async def get_title_details(titleID: str, format: str = "json"):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-#Ttitle Search Bar Endpoint    
+#Title Search Bar Endpoint    
 @router.get("/search_titles", response_class=HTMLResponse)
 async def search_movies_html(request: Request, query: str = Query(...)):
     try:
         async with await get_database_connection() as db_connection:
             async with db_connection.cursor(aiomysql.DictCursor) as cursor:
-                # Use a parameterized query to prevent SQL injection
+                
                 query = f"%{query}%"
                 await cursor.execute("SELECT `Title_ID`, `Original_Title`, `Average_Rating`, `IMAGE` FROM `Title` WHERE `Original_Title` LIKE %s;", (query,))
                 titles = await cursor.fetchall()
@@ -442,13 +413,20 @@ async def search_name(request: Request, query: str = Query(...)):
                     return templates.TemplateResponse("home_page.html", {"request": request, "name_list": names})
 
                 return templates.TemplateResponse("home_page_people.html", {"request": request, "name_list": names})
+    
+    except HTTPException as http_ex:
+        raise http_ex
+    
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
 
 # Title search query
 @router.get("/searchtitle", response_model=List[TitleObject])
-async def search_titles(query: str):
+async def search_titles(query: str, format_type: str = "json"):
+    if format_type not in ["json", "csv"]:
+        raise HTTPException(status_code=400, detail="Unsupported format specifier")
+
     try:
         async with await get_database_connection() as db_connection:
             async with db_connection.cursor(aiomysql.DictCursor) as cursor:
@@ -457,6 +435,8 @@ async def search_titles(query: str):
                     (f'%{query}%',)
                 )
                 titles = await cursor.fetchall()
+                if not titles:
+                    raise HTTPException(status_code=204, detail="No data found")
 
                 full_titles = []
 
@@ -501,22 +481,61 @@ async def search_titles(query: str):
                         genres=[GenreTitle(**g) for g in genres_data], # Due to this format I needed to change the names of the keys when returned by queries
                         titleAkas=[AkaTitle(**a) for a in akas_data],
                         principals=[PrincipalsObject(**p) for p in principals_data],
-                        rating=RatingObject(avRating=title_data["Average_Rating"], nVotes=title_data["Votes"])
+                        rating=RatingObject(avRating=str(title_data["Average_Rating"]), nVotes=str(title_data["Votes"]))
                     )
+
+                    print(title_data["Average_Rating"], title_data["Votes"])
 
                     full_titles.append(title_object)
 
-            if titles:
+            if format_type == "csv":
+                titles_data = []
+                for title in full_titles:
+                    title_dict = {
+                        'tconst': title.titleID,
+                        'Type': title.type,
+                        'Original Title': title.originalTitle,
+                        'Title Poster': title.titlePoster,
+                        'Start Year': title.startYear,
+                        'End Year': title.endYear,
+                        'Genres': ", ".join(['' if g.genreTitle is None else str(g.genreTitle) for g in title.genres]),
+                        'Title Akas': ", ".join([f"{'' if a.akaTitle is None else str(a.akaTitle)} ({'' if a.regionAbbrev is None else str(a.regionAbbrev)})" for a in title.titleAkas]),
+                        'Principals': ", ".join([f"{'' if p.name is None else str(p.name)} ({'' if p.nameID is None else str(p.name)}) ({'' if p.category is None else str(p.category)})" for p in title.principals]),
+                        'AvgRating': title.rating.avRating,
+                        'nVotes': title.rating.nVotes
+                    }
+                    titles_data.append(title_dict)
+
+                df = pd.DataFrame(titles_data)
+                columns_order = ['tconst', 'Type', 'Original Title', 'Title Poster', 'Start Year', 'End Year', 'Genres', 'Title Akas', 'Principals', 'AvgRating', 'nVotes']
+                df = df[columns_order]
+                    
+
+                output = StringIO()
+                df.to_csv(output, index=False)
+                output.seek(0)
+
+                return Response(content=output.getvalue(), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=search_results.csv"})
+            
+            elif format_type == "json":
                 return full_titles
+            
             else:
-                raise HTTPException(status_code=404, detail="No titles found")
+                raise HTTPException(status_code=400, detail="Unsupported format specifier")
+            
+    except HTTPException as http_ex:
+        raise http_ex        
+    
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 # Genre search query
 @router.get("/bygenre", response_model=List[TitleObject])
-async def search_genre(qgenre: str, minrating: Optional[str] = 0, yrFrom: Optional[str] = None, yrTo: Optional[str] = None):
+async def search_genre(qgenre: str, minrating: Optional[str] = 0, yrFrom: Optional[str] = None, yrTo: Optional[str] = None, format_type: str = "json"):
     # Validate parameters
+    if format_type not in ["json", "csv"]:
+        raise HTTPException(status_code=400, detail="Unsupported format specifier")
+
     if not qgenre:
         raise HTTPException(status_code=400, detail="Genre query must not be empty")
 
@@ -571,7 +590,7 @@ async def search_genre(qgenre: str, minrating: Optional[str] = 0, yrFrom: Option
                 await cursor.execute(final_query, params)
                 titles = await cursor.fetchall()
                 if not titles:
-                    raise HTTPException(status_code=404, detail="No titles found")
+                    raise HTTPException(status_code=204, detail="No data found")
                 
                 title_objects = []
 
@@ -603,20 +622,59 @@ async def search_genre(qgenre: str, minrating: Optional[str] = 0, yrFrom: Option
                         genres =[{"genre": genre} for genre in title["Genres"].split(',')] if title["Genres"] else [],
                         titleAkas=[AkaTitle(**a) for a in akas_data],
                         principals=[PrincipalsObject(**p) for p in principals_data],
-                        rating=RatingObject(avRating=title["Average_Rating"], nVotes=title["Votes"])
+                        rating=RatingObject(avRating=str(title["Average_Rating"]), nVotes=str(title["Votes"]))
                     )
 
                     title_objects.append(title_object)
                 
-                return title_objects
+                if format_type == "csv":
+                    titles_data = []
+                    for title in title_objects:
+                        title_dict = {
+                            'tconst': title.titleID,
+                            'Type': title.type,
+                            'Original Title': title.originalTitle,
+                            'Title Poster': title.titlePoster,
+                            'Start Year': title.startYear,
+                            'End Year': title.endYear,
+                            'Genres': ", ".join(['' if g.genreTitle is None else str(g.genreTitle) for g in title.genres]),
+                            'Title Akas': ", ".join([f"{'' if a.akaTitle is None else str(a.akaTitle)} ({'' if a.regionAbbrev is None else str(a.regionAbbrev)})" for a in title.titleAkas]),
+                            'Principals': ", ".join([f"{'' if p.name is None else str(p.name)} ({'' if p.nameID is None else str(p.name)}) ({'' if p.category is None else str(p.category)})" for p in title.principals]),
+                            'AvgRating': title.rating.avRating,
+                            'nVotes': title.rating.nVotes
+                        }
+                        titles_data.append(title_dict)
 
+                    df = pd.DataFrame(titles_data)
+                    columns_order = ['tconst', 'Type', 'Original Title', 'Title Poster', 'Start Year', 'End Year', 'Genres', 'Title Akas', 'Principals', 'AvgRating', 'nVotes']
+                    df = df[columns_order]
+                        
+
+                    output = StringIO()
+                    df.to_csv(output, index=False)
+                    output.seek(0)
+
+                    return Response(content=output.getvalue(), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=search_results.csv"})
+                
+                elif format_type == "json":
+                    return title_objects
+                
+                else:
+                    raise HTTPException(status_code=400, detail="Unsupported format specifier")
+    
+    except HTTPException as http_ex:
+        raise http_ex
+    
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 # Browse a certain person
 @router.get("/name/{nameID}", response_model=NameObject)
-async def get_name_details(nameID: str, format: str = "json"):
+async def get_name_details(nameID: str, format_type: str = "json"):
+    if format_type not in ["json", "csv"]:
+        raise HTTPException(status_code=400, detail="Unsupported format specifier")
+
     try:
         async with await get_database_connection() as db_connection:
             async with db_connection.cursor(aiomysql.DictCursor) as cursor:
@@ -642,7 +700,6 @@ async def get_name_details(nameID: str, format: str = "json"):
                                             INNER JOIN `Participates_In` pi ON T.`ID`= pi.`Title_FK`
                                             WHERE pi.`Name_FK` = %s AND pi.`Title_FK` = %s""", (names["ID"], title_data["ID"]))
                     categories_data = await cursor.fetchall()
-                    #print(categories_data)
 
                     nt_object = NameTitleObject(
                         titleID = title_data["Title_ID"],
@@ -668,54 +725,35 @@ async def get_name_details(nameID: str, format: str = "json"):
                     nameTitles=name_title_objects
                 )
                 
-                if format == "json":
+                if format_type == "json":
                     return name_object
-                elif format == "csv":
-                    # Convert NameObject to CSV format
-                    csv_content = StringIO()
-                    
-                    # Define fieldnames for CSV
-                    fieldnames = list(name_object.__annotations__.keys())
-                    fieldnames.remove("nameTitles")  # Remove nameTitles field
-                    
-                    # Append nameTitles_titleID and nameTitles_category columns dynamically
-                    name_titles_data = getattr(name_object, "nameTitles", [])
-                    for i in range(len(name_titles_data)):
-                        fieldnames.append(f"nameTitles_titleID_{i + 1}")
-                        fieldnames.append(f"nameTitles_category_{i + 1}")
-                    
-                    writer = csv.DictWriter(csv_content, fieldnames=fieldnames)
-                    writer.writeheader()
-                    
-                    # Write data to CSV
-                    name_data = {
-                        "nameID": name_object.nameID,
-                        "name": name_object.name,
-                        "namePoster": name_object.namePoster,
-                        "birthYr": name_object.birthYr,
-                        "deathYr": name_object.deathYr,
-                        "profession": ','.join(name_object.profession),
-                    }
-                    
-                    # Append nameTitles_titleID and nameTitles_category columns
-                    for i, nameTitle in enumerate(name_titles_data, start=1):
-                        name_data[f"nameTitles_titleID_{i}"] = nameTitle.titleID
-                        name_data[f"nameTitles_category_{i}"] = ','.join(nameTitle.category)
-                    
-                    writer.writerow(name_data)
-                    
-                    csv_content.seek(0)
-                    
+                elif format_type == "csv":
+                    name_data = [{
+                        'nconst': name_object.nameID,
+                        'Name': name_object.name,
+                        'Name Poster': name_object.namePoster,
+                        'Birth Year': name_object.birthYr,
+                        'Death Year': name_object.deathYr,
+                        'Profession': ", ".join([p["Profession"] for p in primary_professions]),
+                        'Name Titles': ", ".join([f"{nt.titleID} ({', '.join(nt.category)})" for nt in name_object.nameTitles])
+                    }]
 
-                    #return csv_content.getvalue()
-                    #print(csv_content.getvalue())
-                    return PlainTextResponse(content=csv_content.getvalue(), media_type="text/csv", headers={ "content-type": "text/plain"})
+                    df = pd.DataFrame(name_data)
+                    columns_order = ['nconst', 'Name', 'Name Poster', 'Birth Year', 'Death Year', 'Profession', 'Name Titles']
+                    df = df[columns_order]
+
+                    output = StringIO()
+                    df.to_csv(output, index=False)
+                    output.seek(0)
+
+                    return Response(content=output.getvalue(), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=search_results.csv"})
             
                 else:
                     raise HTTPException(status_code=400, detail="Unsupported format specifier")
-                
-                #return name_object
-
+    
+    except HTTPException as http_ex:
+        raise http_ex
+    
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -723,16 +761,19 @@ async def get_name_details(nameID: str, format: str = "json"):
 
 # Search by name
 @router.get("/searchname", response_model=List[NameObject])
-async def search_name(query: str):
+async def search_name(query: str, format_type: str = "json"):
+    if format_type not in ["json", "csv"]:
+        raise HTTPException(status_code=400, detail="Unsupported format specifier")
+
     try:
         async with await get_database_connection() as db_connection:
             async with db_connection.cursor(aiomysql.DictCursor) as cursor:
-                await cursor.execute("""SELECT `Name_ID`, `Name`, `Image`, `Birth_Year` as birthYr, `Death_Year` as deathYr, `ID`
+                await cursor.execute("""SELECT `Name_ID`, `Name`, `IMAGE`, `Birth_Year` as birthYr, `Death_Year` as deathYr, `ID`
                                         FROM `Person` 
                                         WHERE `Name` LIKE %s""", (f'%{query}%',))
                 names = await cursor.fetchall()
                 if not names:
-                    raise HTTPException(status_code=404, detail="No people found")
+                    raise HTTPException(status_code=204, detail="No people found")
 
                 result = []
                 for name in names:
@@ -742,6 +783,7 @@ async def search_name(query: str):
                                             INNER JOIN `Title` T ON pi.`Title_FK`= T.`ID`
                                             WHERE p.`ID` = %s""", (name["ID"],))
                     name_titles_data = await cursor.fetchall()
+                    print(name_titles_data)
 
                     name_title_objects = []
 
@@ -751,7 +793,6 @@ async def search_name(query: str):
                                                 INNER JOIN `Participates_In` pi ON T.`ID`= pi.`Title_FK`
                                                 WHERE pi.`Name_FK` = %s AND pi.`Title_FK` = %s""", (name["ID"], title_data["ID"]))
                         categories_data = await cursor.fetchall()
-                        print(categories_data)
 
                         nt_object = NameTitleObject(
                             titleID = title_data["Title_ID"],
@@ -760,17 +801,18 @@ async def search_name(query: str):
 
                         name_title_objects.append(nt_object)
                     
+                    print("sth")
                     await cursor.execute("""SELECT p.`Profession`
                                             FROM `Profession` p
                                             INNER JOIN `Profession_Person` pp ON p.`ID`= pp.`Profession_FK`
                                             INNER JOIN `Person` pr ON pr.`ID`= pp.`Name_FK`
-                                            WHERE pr.`ID` = %s""", (names["ID"]))
+                                            WHERE pr.`ID` = %s""", (name["ID"]))
                     primary_profession = await cursor.fetchall()
                     
                     name_object = NameObject(
                         nameID=name["Name_ID"],
                         name=name["Name"],
-                        namePoster=name["Image"],
+                        namePoster=name["IMAGE"],
                         birthYr=str(name["birthYr"]),
                         deathYr=str(name["deathYr"]) if name["deathYr"] else None,
                         profession=[p["Profession"] for p in primary_profession],
@@ -779,7 +821,31 @@ async def search_name(query: str):
                     
                     result.append(name_object)
                 
+            if format_type == "json":
                 return result
+            elif format_type == "csv":
+                name_data = [{
+                    'nconst': name_object.nameID,
+                    'Name': name_object.name,
+                    'Name Poster': name_object.namePoster,
+                    'Birth Year': name_object.birthYr,
+                    'Death Year': name_object.deathYr,
+                    'Profession': ", ".join([p["Profession"] for p in primary_profession]),
+                    'Name Titles': ", ".join([f"{nt.titleID} ({', '.join(nt.category)})" for nt in name_object.nameTitles])
+                } for name_object in result]
+
+                df = pd.DataFrame(name_data)
+                columns_order = ['nconst', 'Name', 'Name Poster', 'Birth Year', 'Death Year', 'Profession', 'Name Titles']
+                df = df[columns_order]
+
+                output = StringIO()
+                df.to_csv(output, index=False)
+                output.seek(0)
+
+                return Response(content=output.getvalue(), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=search_results.csv"})
+    
+    except HTTPException as http_ex:
+        raise http_ex
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
