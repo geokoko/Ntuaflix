@@ -22,10 +22,10 @@ async def browse_titles_html(request: Request):
     try:
         async with await get_database_connection() as db_connection:
             async with db_connection.cursor(aiomysql.DictCursor) as cursor:
-                await cursor.execute("SELECT `Title_ID`, `Original_Title`, `Average_Rating`, `IMAGE` FROM `Title`;")
+                await cursor.execute("SELECT `Title_ID`, `Original_Title`, `Average_Rating`, `IMAGE` FROM `Title` LIMIT 10;")
                 titles = await cursor.fetchall()
                 if not titles:
-                    raise HTTPException(status_code=204, detail="No titles found")
+                    raise HTTPException(status_code=404, detail="No titles found")
 
                 return templates.TemplateResponse("home_page.html", {"request": request, "title_list": titles})
     except HTTPException as http_ex:
@@ -46,7 +46,7 @@ async def get_title_details(titleID: str, format_type: str = "json"):
                 await cursor.execute("SELECT * FROM `Title` WHERE `Title_ID` = %s;", (titleID,))
                 title_data = await cursor.fetchone()
                 if not title_data:
-                    raise HTTPException(status_code=204, detail="Data not found")
+                    return Response(status_code=204)
                 
                 print(title_data)
                 primary_key = title_data["ID"]
@@ -245,7 +245,7 @@ async def get_name_details(nameID: str, format_type: str = "json"):
                                         WHERE `Name_ID` = %s""", (nameID,))
                 names = await cursor.fetchone()
                 if not names:
-                    raise HTTPException(status_code=404, detail="Person not found")
+                    return Response(status_code=204)
 
                 await cursor.execute("""SELECT T.`Title_ID`, T.`ID`
                                         FROM `Person` p
@@ -333,32 +333,27 @@ async def person_details_html(request: Request, name_id: str):
                     print(f"Error: {e}")
                 person = await cursor.fetchone()
                 if not person: 
-                    raise HTTPException(status_code=404, detail="No person found")
+                    return Response(status_code=204)
                 
                 person_ID = person["ID"]
-                try:
-                    await cursor.execute("""SELECT T.`Title_ID`, T.`Original_Title`, T.`IMAGE`, T.`Average_Rating`, pi.`Job_Category`
-                                        FROM `person` P
-                                        INNER JOIN `participates_in` pi ON P.`ID` = pi.`Name_FK`
-                                        INNER JOIN `title` T ON pi.`Title_FK` = T.`ID`
+             
+                await cursor.execute("""SELECT T.`Title_ID`, T.`Original_Title`, T.`IMAGE`, T.`Average_Rating`, pi.`Job_Category`
+                                        FROM `Person` P
+                                        INNER JOIN `Participates_In` pi ON P.`ID` = pi.`Name_FK`
+                                        INNER JOIN `Title` T ON pi.`Title_FK` = T.`ID`
                                         WHERE P.`ID` = %s;""", (person_ID,))
-                except Exception as e: 
-                    print(f"Error: {e}")
+             
                 titles = await cursor.fetchall()
-                if not titles: 
-                    raise HTTPException(status_code=404, detail="No movies found")
+                
 
-                try:
-                    await cursor.execute("""SELECT pr.`Profession`
-                                        FROM `person` P 
-                                        INNER JOIN `profession_person` pp ON P.`ID` = pp.`Name_FK`
-                                        INNER JOIN `profession` pr ON pp.`Profession_FK` = pr.`ID`
+                
+                await cursor.execute("""SELECT pr.`Profession`
+                                        FROM `Person` P 
+                                        INNER JOIN `Profession_Person` pp ON P.`ID` = pp.`Name_FK`
+                                        INNER JOIN `Profession` pr ON pp.`Profession_FK` = pr.`ID`
                                         WHERE P.`ID` = %s;""", (person_ID,))
-                except Exception as e: 
-                    print(f"Error: {e}")
+                
                 prof = await cursor.fetchall()
-                if not prof: 
-                    raise HTTPException(status_code=404, detail="No professions found")
                 profession = []
                 for item in prof: 
                     dummy = item['Profession'].capitalize()
@@ -383,7 +378,7 @@ async def search_titles(query: str, format_type: str = "json"):
                 )
                 titles = await cursor.fetchall()
                 if not titles:
-                    raise HTTPException(status_code=204, detail="No data found")
+                    return Response(status_code=204)
 
                 full_titles = []
 
@@ -554,7 +549,7 @@ async def search_genre(qgenre: str, minrating: Optional[str] = 0, yrFrom: Option
                 await cursor.execute(final_query, params)
                 titles = await cursor.fetchall()
                 if not titles:
-                    raise HTTPException(status_code=204, detail="No data found")
+                    return Response(status_code=204)
                 
                 title_objects = []
 
@@ -693,7 +688,7 @@ async def search_name(query: str, format_type: str = "json"):
                                         WHERE `Name` LIKE %s""", (f'%{query}%',))
                 names = await cursor.fetchall()
                 if not names:
-                    raise HTTPException(status_code=204, detail="No people found")
+                    return Response(status_code=204)
 
                 result = []
                 for name in names:
@@ -721,7 +716,6 @@ async def search_name(query: str, format_type: str = "json"):
 
                         name_title_objects.append(nt_object)
                     
-                    print("sth")
                     await cursor.execute("""SELECT p.`Profession`
                                             FROM `Profession` p
                                             INNER JOIN `Profession_Person` pp ON p.`ID`= pp.`Profession_FK`
@@ -793,7 +787,7 @@ async def search_name(request: Request, query: str = Query(...)):
                         names = [person for person in names if person in part_names]
 
                 if not names:
-                    return templates.TemplateResponse("home_page.html", {"request": request, "name_list": names})
+                    return Response(status_code=204)
 
                 return templates.TemplateResponse("home_page_people.html", {"request": request, "name_list": names})
     
