@@ -3,7 +3,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, FileResponse, PlainTextResponse, JSONResponse
 from typing import List, Optional
 from ..models import TitleObject, NameObject, AkaTitle, PrincipalsObject, RatingObject, GenreTitle, NameTitleObject
-from ..database import get_database_connection, check_connection, create_backup, restore, pick_backup
+from ..database import get_database_connection, check_connection, create_backup, restore, pick_backup, reset_database
 from ..utils.admin_helpers import insert_into_name, insert_into_profession, insert_into_profession_person, fetch_person_primary_key, check_existing_participation, update_title_ratings, insert_into_episode, insert_into_title, fetch_title_primary_key, insert_into_participates_in
 import aiomysql
 from typing import Optional
@@ -820,13 +820,21 @@ async def initiate_backup():
         return await create_backup()    
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-# Admin restore database   
-@router.post("/admin/resetall")
+    
+# Admin restore backup
+@router.post("/admin/restore")
 async def initiate_restore():
     try:
         return await restore()
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Admin reset database to original state 
+@router.post("/admin/resetall")
+async def initiate_reset():
+    try:
+        return await reset_database()
+    except Exception as e: # catching other exceptions
         raise HTTPException(status_code=500, detail=str(e))
 
 # endpoint 2

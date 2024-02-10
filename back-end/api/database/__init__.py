@@ -7,11 +7,27 @@ from pathlib import Path
 import re
 from fastapi import HTTPException
 from sys import platform
+import subprocess
 
 load_dotenv()
 
 db_pool = None
 BACKUP_DIR = os.path.join(Path(__file__).resolve().parent.parent.parent, 'db' , 'backups')
+
+# Resets the database to its initial state
+async def reset_database():
+    try:
+        result = await asyncio.create_subprocess_exec("python3", os.path.join(Path(__file__).resolve().parent.parent.parent, 'db' , 'data', 'database_init.py'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        stdout, stderr = await result.communicate()
+
+        if result.returncode == 0:
+            return {"status": "OK", "details": stdout.decode()}
+        else:
+            return {"status": "failed", "reason": stderr.decode()}
+        
+    except result.CalledProcessError as e: # catching specific subprocess error
+        raise HTTPException(status_code=500, detail=f"Database reset script failed: {e.stderr}")
 
 # Creates a Backup of the most recent database version
 async def create_backup():

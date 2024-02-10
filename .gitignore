@@ -2,3 +2,4 @@
 .DS_Store
 back-end/db/data/data_processing.ipynb
 __pycache__/
+back-end/api/myenv/

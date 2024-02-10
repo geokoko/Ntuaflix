@@ -31,7 +31,7 @@ def run_ddl_script(host, user, password, script_path):
 
 run_ddl_script(host, user, password, script_path)
 
-connection = pymysql.connect(host=host, user=user, password=password, db=db, unix_socket='/Applications/XAMPP/xamppfiles/var/mysql/mysql.sock')
+connection = pymysql.connect(host=host, user=user, password=password, db=db)
 print("Connection to the database successful")
 
 files = {
@@ -106,7 +106,14 @@ title_genre_df.fillna(random.randint(1, 100), inplace=True)
 title_genre_df.replace('\\N', None, inplace=True)
 
 ###################################################Profession_DataFrame#####################################################
+profession_df = dataframes['name_basics'][['nconst', 'primaryProfession']]
+profession_df.columns = ['Name_ID', 'Profession']
+profession_df['Profession'] = profession_df['Profession'].str.split(',')
+profession_df = profession_df.explode('Profession')
+profession_df.fillna(random.randint(1, 100), inplace=True)
+profession_df.replace('\\N', None, inplace=True)
 
+print(profession_df.head())
 
 ###################################################TITLE###########################################################
 title_primary_keys = {}
@@ -279,3 +286,40 @@ with connection.cursor() as cursor:
 
     if success:
         print("All title_akas inserted")
+
+#################################PROFESSION AND PROFESSION_PERSON################################################
+profession_primary_keys = {}
+success = True
+with connection.cursor() as cursor:
+    profession_query = "INSERT INTO `Profession` (Profession) VALUES (%s)"
+
+    for index, row in profession_df.iterrows():
+        profession = row['Profession']
+        try:
+            cursor.execute(profession_query, (profession,))
+            connection.commit()
+        except Exception as e:
+            success = False
+            print(f"{profession} failed: {e}")
+            raise
+        # Saving the primary key
+        profession_primary_keys[profession] = cursor.lastrowid
+
+    profession_person_query = "INSERT INTO `Profession_Person` (Name_FK, Profession_FK) VALUES (%s, %s)"
+
+    for index, row in profession_df.iterrows():
+        name_fk = person_primary_keys.get(row['Name_ID'])
+        profession_fk = profession_primary_keys.get(row['Profession'])
+
+        try:
+            if name_fk is not None and profession_fk is not None:
+                cursor.execute(profession_person_query, (name_fk, profession_fk))
+                connection.commit()
+            else:
+                connection.rollback()
+        except Exception as e:
+            success = False
+            print(str(e))
+    
+    if success:
+        print("All profession and profession_person inserted")       
