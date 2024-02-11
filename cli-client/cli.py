@@ -1,4 +1,4 @@
-import argparse, requests, os, csv
+import argparse, requests, os, csv, json
 
 BASE_URL = "http://127.0.0.1:9876/ntuaflix_api" 
 
@@ -23,7 +23,7 @@ def resetall():
         print(f"An error occurred: {e}")
 
 
-#Not tested yet
+
 def newtitles(args):
     if not os.path.isfile(args.filename):
         print(f"Error: File '{args.filename}' does not exist.")
@@ -38,7 +38,7 @@ def newtitles(args):
         print(f"An error occurred: {e}")
 
 
-#Not tested yet
+
 def newakas(args):
     if not os.path.isfile(args.filename):
         print(f"Error: File '{args.filename}' does not exist.")
@@ -133,10 +133,42 @@ def title(args):
         print(f"An error occurred: {e}")
 
 
+def searchtitle(args):
+    try:
+        params = {"query": args.titlepart}
+        response = requests.get(f"{BASE_URL}/searchtitle", params=params)
+        handle_response(response, args.format)
+    except requests.exceptions.RequestException as e:
+        print(f"An error occurred: {e}")
+
+
+def bygenre(args):
+    try:
+        year_from = str(getattr(args, 'from')) if getattr(args, 'from') is not None else None
+        year_to = str(args.to) if args.to is not None else None
+
+    
+        params = {"qgenre": args.genre, "minrating": str(args.min), "yrFrom": year_from, "yrTo": year_to}
+        response = requests.get(f"{BASE_URL}/bygenre", params=params)
+        handle_response(response, args.format)
+    except requests.exceptions.RequestException as e:
+        print(f"An error occurred: {e}")
+
+
+
 def name(args):
     try:
         params = {"format": args.format}
         response = requests.get(f"{BASE_URL}/name/{args.nameid}", params=params)
+        handle_response(response, args.format)
+    except requests.exceptions.RequestException as e:
+        print(f"An error occurred: {e}")
+
+
+def searchname(args):
+    try:
+        params = {"query": args.name}
+        response = requests.get(f"{BASE_URL}/searchname", params=params)
         handle_response(response, args.format)
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
@@ -147,7 +179,10 @@ def handle_response(response, format):
     if response.status_code == 200:
         print("Status Code 200")
         if format == 'json':
-            print(response.json())
+            try:
+                print(response.json())
+            except UnicodeEncodeError:
+                print(response.text.encode('utf-8', errors='ignore').decode('utf-8'))
         elif format == "csv":
             print(response.text)
         else:
@@ -167,16 +202,18 @@ def handle_response(response, format):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Ntuaflix CLI")
-    parser.add_argument("scope", choices=["healthcheck", "resetall", "title", "name", "newtitles", "newakas", "newnames", "newcrew", "newepisode", "newprincipals", "newratings"])
+    parser.add_argument("scope", choices=["healthcheck", "resetall", "title", "searchtitle", 
+                                          "bygenre", "name", "searchname","newtitles", "newakas", 
+                                          "newnames", "newcrew", "newepisode", "newprincipals", "newratings"])
     parser.add_argument("--filename", help="Specify filename for newprincipals/newratings scope")
     
     parser.add_argument("--titleID", help="Specify titleID for title scope")
     parser.add_argument("--titlepart", help="Specify titlepart for searchtitle scope")
    
     parser.add_argument("--genre", help="Specify genre for bygenre scope")
-    parser.add_argument("--min", help="Specify min for bygenre scope")
-    parser.add_argument("--from", help="Specify from for bygenre scope")
-    parser.add_argument("--to", help="Specify to for bygenre scope")
+    parser.add_argument("--min", help="Specify minrating for bygenre scope")
+    parser.add_argument("--from", help="Specify yrFrom for bygenre scope")
+    parser.add_argument("--to", help="Specify yrTo for bygenre scope")
    
     parser.add_argument("--nameid", help="Specify nameID for name scope")
     parser.add_argument("--name", help="Specify name for searchname scope")
@@ -194,16 +231,37 @@ if __name__ == "__main__":
             print("Error: --nameid is a mandatory parameter for the 'name' scope.")
         else:
             name(args)
+    elif args.scope == "searchname":
+        if not args.name:
+            print("Error: --name is a mandatory parameter for the 'searchname' scope.")
+        else:
+            searchname(args)
     elif args.scope == "title":
         if not args.titleID:
             print("Error: --titleID is a mandatory parameter for the 'title' scope.")
         else:
             title(args)
+    elif args.scope == "searchtitle":
+        if not args.titlepart:
+            print("Error: --titlepart is a mandatory parameter for the 'searchtitle' scope.")
+        else:
+            searchtitle(args)
+    elif args.scope == "bygenre":
+        if not (args.genre and args.min):
+            print("Error: --genre is a mandatory parameter for the 'bygenre' scope.")
+            print("Error: --min is a mandatory parameter for the 'bygenre' scope.")
+        else:
+            bygenre(args)
     elif args.scope == "newtitles":
         if not args.filename:
             print("Error: --filename is a mandatory parameter for the 'newtitles' scope.")
         else:
             newtitles(args)  
+    elif args.scope == "newakas":
+        if not args.filename:
+            print("Error: --filename is a mandatory parameter for the 'newakas' scope.")
+        else:
+            newakas(args)  
     elif args.scope == "newnames":
         if not args.filename:
             print("Error: --filename is a mandatory parameter for the 'newnames' scope.")
