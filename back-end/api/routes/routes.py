@@ -22,7 +22,7 @@ async def browse_titles_html(request: Request):
     try:
         async with await get_database_connection() as db_connection:
             async with db_connection.cursor(aiomysql.DictCursor) as cursor:
-                await cursor.execute("SELECT `Title_ID`, `Original_Title`, `Average_Rating`, `IMAGE` FROM `Title` LIMIT 10;")
+                await cursor.execute("SELECT `Title_ID`, `Original_Title`, `Average_Rating`, `IMAGE` FROM `Title` WHERE `IMAGE` IS NOT NULL AND `IMAGE` != '' LIMIT 10;")
                 titles = await cursor.fetchall()
                 if not titles:
                     raise HTTPException(status_code=404, detail="No titles found")
