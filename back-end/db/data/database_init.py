@@ -5,6 +5,7 @@ import os
 from dotenv import load_dotenv
 import platform
 from subprocess import call
+import time
 
 load_dotenv()
 
@@ -76,7 +77,6 @@ person_df.columns = ['Name_ID', 'Name', 'Birth_Year', 'Death_Year', 'Image']
 person_df.fillna(random.randint(1, 100), inplace=True)
 person_df.replace('\\N', None, inplace=True)
 
-
 #################################PRINCIPALS_DATAFRAMES#################################################
 dataframes['title_principals']['category'] = dataframes['title_principals']['category'].replace('\\N', '')
 dataframes['title_principals']['job'] = dataframes['title_principals']['job'].replace('\\N', '')
@@ -86,7 +86,6 @@ participates_in_df = dataframes['title_principals'][['tconst', 'nconst', 'orderi
 participates_in_df.columns = ['Title_FK', 'Name_FK', 'Ordering', 'Job_Category', 'Character']
 participates_in_df.fillna(random.randint(1, 100), inplace=True)
 participates_in_df.replace('\\N', None, inplace=True)
-
 
 ############################GENRES_DATAFRAMES#######################################################
 
@@ -117,209 +116,255 @@ print(profession_df.head())
 
 ###################################################TITLE###########################################################
 title_primary_keys = {}
+start_time = time.time()
 success = True
-with connection.cursor() as cursor:
-    # Dealing with Titles first
-    q = "INSERT INTO `Title` (Title_ID, Original_Title, Type, Start_Year, End_Year, Runtime, Average_Rating, Votes, isAdult, IMAGE) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
-    
-    for index, row in title_df.iterrows():
-        try:
-            tconst = row['Title_ID']
-            original_title = row['Original_Title']
-            type = row['Type']
-            start_year = row['Start_Year']
-            end_year = row['End_Year']
-            runtime = row['Runtime']
-            average_rating = row['Average_Rating']
-            votes = row['Votes']
-            is_adult = row['isAdult']
-            image = row['IMAGE']
 
-            cursor.execute(q, (tconst, original_title, type, start_year, end_year, runtime, average_rating, votes, is_adult, image))
-            connection.commit()
+try:
+    with connection.cursor() as cursor:
+        # Dealing with Titles first
+        q = "INSERT INTO `Title` (Title_ID, Original_Title, Type, Start_Year, End_Year, Runtime, Average_Rating, Votes, isAdult, IMAGE) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
         
-            # Saving the primary key
-            title_primary_keys[tconst] = cursor.lastrowid
+        for index, row in title_df.iterrows():
+            try:
+                tconst = row['Title_ID']
+                original_title = row['Original_Title']
+                type = row['Type']
+                start_year = row['Start_Year']
+                end_year = row['End_Year']
+                runtime = row['Runtime']
+                average_rating = row['Average_Rating']
+                votes = row['Votes']
+                is_adult = row['isAdult']
+                image = row['IMAGE']
 
-        except Exception as e:
-            success = False
-            print(f"Error inserting title ID {tconst}: {e}")
-            raise
+                cursor.execute(q, (tconst, original_title, type, start_year, end_year, runtime, average_rating, votes, is_adult, image))
+                connection.commit()
+            
+                # Saving the primary key
+                title_primary_keys[tconst] = cursor.lastrowid
 
-    if success:
-        print("All titles inserted")
+            except Exception as e:
+                success = False
+                print(f"Error inserting title ID {tconst}: {e}")
+                raise
+
+        if success:
+            print("All titles inserted")
+finally:
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"Execution time: {execution_time} sec")
 
 ######################################################PERSON###############################################################
 person_primary_keys = {}
+start_time = time.time()
 success = True
 
-with connection.cursor() as cursor:
-    query = "INSERT INTO `Person` (Name_ID, Name, Image, Birth_Year, Death_Year) VALUES (%s, %s, %s, %s, %s)"
-    
-    for index, row in person_df.iterrows():
-        name_id = row['Name_ID']
-        name = row['Name']
-        image = row['Image']
-        birth_year = row['Birth_Year']
-        death_year = row['Death_Year']
-
-        try:
-            cursor.execute(query, (name_id, name, image, birth_year, death_year))
-            connection.commit()
+try:
+    with connection.cursor() as cursor:
+        query = "INSERT INTO `Person` (Name_ID, Name, Image, Birth_Year, Death_Year) VALUES (%s, %s, %s, %s, %s)"
         
-            # Saving the auto-generated primary key
-            person_primary_keys[name_id] = cursor.lastrowid
-        except Exception as e:
-            success = False
-            connection.rollback()  # Rollback in case of error
-    
-    if success:
-        print("All people inserted")
+        for index, row in person_df.iterrows():
+            name_id = row['Name_ID']
+            name = row['Name']
+            image = row['Image']
+            birth_year = row['Birth_Year']
+            death_year = row['Death_Year']
+
+            try:
+                cursor.execute(query, (name_id, name, image, birth_year, death_year))
+                connection.commit()
+            
+                # Saving the auto-generated primary key
+                person_primary_keys[name_id] = cursor.lastrowid
+            except Exception as e:
+                success = False
+                connection.rollback()  # Rollback in case of error
+        
+        if success:
+            print("All people inserted")
+finally:
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"Execution time: {execution_time} sec")
 
 #####################################################PARTICIPATES_IN#########################################################
 success = True
-with connection.cursor() as cursor:
-    query = "INSERT INTO `Participates_In` (Title_FK, Name_FK, Ordering, Job_Category, `Character`) VALUES (%s, %s, %s, %s, %s)"
-    
-    for index, row in participates_in_df.iterrows():
-        title_fk = title_primary_keys.get(row['Title_FK'])
-        name_fk = person_primary_keys.get(row['Name_FK'])
-        ordering = row['Ordering']
-        job_category = row['Job_Category']
-        character = row['Character']
+start_time = time.time()
 
-        try:
-            cursor.execute(query, (title_fk, name_fk, ordering, job_category, character))
-            connection.commit()
-        except Exception as e:
-            success = False
-            print(f"an error occured with {title_fk} and {name_fk}: {e}")
-            raise
-    
-    if success:
-        print("All principals inserted")
+try:
+    with connection.cursor() as cursor:
+        query = "INSERT INTO `Participates_In` (Title_FK, Name_FK, Ordering, Job_Category, `Character`) VALUES (%s, %s, %s, %s, %s)"
+        
+        for index, row in participates_in_df.iterrows():
+            title_fk = title_primary_keys.get(row['Title_FK'])
+            name_fk = person_primary_keys.get(row['Name_FK'])
+            ordering = row['Ordering']
+            job_category = row['Job_Category']
+            character = row['Character']
+
+            try:
+                cursor.execute(query, (title_fk, name_fk, ordering, job_category, character))
+                connection.commit()
+            except Exception as e:
+                success = False
+                print(f"an error occured with {title_fk} and {name_fk}: {e}")
+                raise
+        
+        if success:
+            print("All principals inserted")
+finally:
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"Execution time: {execution_time} sec")
 
 #######################################################GENRES###########################################################
 success = True
-with connection.cursor() as cursor:
-    genre_query = "INSERT INTO `Genre` (Genre) VALUES (%s)"
-    genre_primary_keys = {}
+start_time = time.time()
 
-    for index, row in genres_df.iterrows():
-        genre = row['Genre']
-        try:
-            cursor.execute(genre_query, (genre,))
-            connection.commit()
-        except Exception as e:
-            success = False
-            print(f"{genre} failed: {e}")
-            raise
-        # Saving the primary key
-        genre_primary_keys[genre] = cursor.lastrowid
+try:
+    with connection.cursor() as cursor:
+        genre_query = "INSERT INTO `Genre` (Genre) VALUES (%s)"
+        genre_primary_keys = {}
 
-    title_genre_query = "INSERT INTO `Title_Genre` (Title_FK, Genre_FK) VALUES (%s, %s)"
-
-    for index, row in title_genre_df.iterrows():
-        title_fk = title_primary_keys.get(row['Title_FK'])
-        if title_fk == None:
-            continue
-        genre_fk = genre_primary_keys.get(row['Genre'])
-
-        try:
-            if title_fk is not None and genre_fk is not None:
-                cursor.execute(title_genre_query, (title_fk, genre_fk))
+        for index, row in genres_df.iterrows():
+            genre = row['Genre']
+            try:
+                cursor.execute(genre_query, (genre,))
                 connection.commit()
-            else:
-                connection.rollback()
-        except Exception as e:
-            success = False
-            print(str(e))
-    
-    if success:
-        print("All genre and title_genre fields inserted")
+            except Exception as e:
+                success = False
+                print(f"{genre} failed: {e}")
+                raise
+            # Saving the primary key
+            genre_primary_keys[genre] = cursor.lastrowid
+
+        title_genre_query = "INSERT INTO `Title_Genre` (Title_FK, Genre_FK) VALUES (%s, %s)"
+
+        for index, row in title_genre_df.iterrows():
+            title_fk = title_primary_keys.get(row['Title_FK'])
+            if title_fk == None:
+                continue
+            genre_fk = genre_primary_keys.get(row['Genre'])
+
+            try:
+                if title_fk is not None and genre_fk is not None:
+                    cursor.execute(title_genre_query, (title_fk, genre_fk))
+                    connection.commit()
+                else:
+                    connection.rollback()
+            except Exception as e:
+                success = False
+                print(str(e))
+        
+        if success:
+            print("All genre and title_genre fields inserted")
+finally:
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"Execution time: {execution_time} sec")
 ##################################EPISODES####################################################################
 success = True
+start_time = time.time()
 episode_query = "INSERT INTO `Episode` (Title_FK, Parent_Title_FK, Season, Episode_Num) VALUES (%s, %s, %s, %s)"
 
-with connection.cursor() as cursor:
-    for index, row in episode_df.iterrows():
-        title_fk = title_primary_keys.get(row['Title_ID'])
-        parentTconst = row['parentTitle_ID']
-        season = row['Season']
-        episode_num = row['Episode_Num']
+try:
+    with connection.cursor() as cursor:
+        for index, row in episode_df.iterrows():
+            title_fk = title_primary_keys.get(row['Title_ID'])
+            parentTconst = row['parentTitle_ID']
+            season = row['Season']
+            episode_num = row['Episode_Num']
 
-        # Ensure both foreign keys are found
-        try:
-            cursor.execute(episode_query, (title_fk, parentTconst, season, episode_num))
-            connection.commit()
-        except Exception as e:
-            success = False
-            print(f"Error inserting episode: {e}")
-            connection.rollback()
-        
-    if success:
-        print("All episodes inserted")
+            # Ensure both foreign keys are found
+            try:
+                cursor.execute(episode_query, (title_fk, parentTconst, season, episode_num))
+                connection.commit()
+            except Exception as e:
+                success = False
+                print(f"Error inserting episode: {e}")
+                connection.rollback()
+            
+        if success:
+            print("All episodes inserted")
+finally:
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"Execution time: {execution_time} sec")
 
 ##########################################ALT_TITLE########################################################
 alt_title_primary_keys = {}
+start_time = time.time()
 success = True
 
-with connection.cursor() as cursor:
-    query = "INSERT INTO `Alt_Title` (Title_FK, Ordering, Title_AKA, Region) VALUES (%s, %s, %s, %s)"
-    
-    for index, row in alt_title_df.iterrows():
-        title_fk = title_primary_keys.get(row['Title_FK'])
-        ordering = row['Ordering']
-        title_aka = row['Title_AKA']
-        region = row['Region']
-
-        try:
-            cursor.execute(query, (title_fk, ordering, title_aka, region))
-            connection.commit()
+try:
+    with connection.cursor() as cursor:
+        query = "INSERT INTO `Alt_Title` (Title_FK, Ordering, Title_AKA, Region) VALUES (%s, %s, %s, %s)"
         
-            # Saving the auto-generated primary key
-            alt_title_primary_keys[(title_fk, title_aka)] = cursor.lastrowid
-        except Exception as e:
-            success = False
-            print(f"Error inserting Title_FK: {title_fk}, Title_AKA: {title_aka}: {e}")
-            connection.rollback()  # Rollback in case of error
+        for index, row in alt_title_df.iterrows():
+            title_fk = title_primary_keys.get(row['Title_FK'])
+            ordering = row['Ordering']
+            title_aka = row['Title_AKA']
+            region = row['Region']
 
-    if success:
-        print("All title_akas inserted")
+            try:
+                cursor.execute(query, (title_fk, ordering, title_aka, region))
+                connection.commit()
+            
+                # Saving the auto-generated primary key
+                alt_title_primary_keys[(title_fk, title_aka)] = cursor.lastrowid
+            except Exception as e:
+                success = False
+                print(f"Error inserting Title_FK: {title_fk}, Title_AKA: {title_aka}: {e}")
+                connection.rollback()  # Rollback in case of error
+
+        if success:
+            print("All title_akas inserted")
+finally:
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"Execution time: {execution_time} sec")
 
 #################################PROFESSION AND PROFESSION_PERSON################################################
 profession_primary_keys = {}
+start_time = time.time()
 success = True
-with connection.cursor() as cursor:
-    profession_query = "INSERT INTO `Profession` (Profession) VALUES (%s)"
 
-    for index, row in profession_df.iterrows():
-        profession = row['Profession']
-        try:
-            cursor.execute(profession_query, (profession,))
-            connection.commit()
-        except Exception as e:
-            success = False
-            print(f"{profession} failed: {e}")
-            raise
-        # Saving the primary key
-        profession_primary_keys[profession] = cursor.lastrowid
+try:
+    with connection.cursor() as cursor:
+        profession_query = "INSERT INTO `Profession` (Profession) VALUES (%s)"
 
-    profession_person_query = "INSERT INTO `Profession_Person` (Name_FK, Profession_FK) VALUES (%s, %s)"
-
-    for index, row in profession_df.iterrows():
-        name_fk = person_primary_keys.get(row['Name_ID'])
-        profession_fk = profession_primary_keys.get(row['Profession'])
-
-        try:
-            if name_fk is not None and profession_fk is not None:
-                cursor.execute(profession_person_query, (name_fk, profession_fk))
+        for index, row in profession_df.iterrows():
+            profession = row['Profession']
+            try:
+                cursor.execute(profession_query, (profession,))
                 connection.commit()
-            else:
-                connection.rollback()
-        except Exception as e:
-            success = False
-            print(str(e))
-    
-    if success:
-        print("All profession and profession_person inserted")       
+            except Exception as e:
+                success = False
+                print(f"{profession} failed: {e}")
+                raise
+            # Saving the primary key
+            profession_primary_keys[profession] = cursor.lastrowid
+
+        profession_person_query = "INSERT INTO `Profession_Person` (Name_FK, Profession_FK) VALUES (%s, %s)"
+
+        for index, row in profession_df.iterrows():
+            name_fk = person_primary_keys.get(row['Name_ID'])
+            profession_fk = profession_primary_keys.get(row['Profession'])
+
+            try:
+                if name_fk is not None and profession_fk is not None:
+                    cursor.execute(profession_person_query, (name_fk, profession_fk))
+                    connection.commit()
+                else:
+                    connection.rollback()
+            except Exception as e:
+                success = False
+                print(str(e))
+        
+        if success:
+            print("All profession and profession_person inserted")       
+finally:
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"Execution time: {execution_time} sec")

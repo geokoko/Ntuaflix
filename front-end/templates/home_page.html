@@ -12,6 +12,10 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     </head>
     <body>
+        <!--Loader-->
+        <div class="loader loader-hidden">
+            <p>Loading...This might take some time</p>
+        </div>
         <!-- Navigation -->
         <nav class="navbar navbar-expand-sm justify-content-end fixed-top">
             <div class="container-fluid">
@@ -34,9 +38,9 @@
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Admin Operations</a>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="#">Backup</a></li>
-                                <li><a class="dropdown-item" href="#">Restore</a></li>
-                                <li><a class="dropdown-item" href="#">Reset Database</a></li>
+                                <li><a class="dropdown-item" href="#" id="backup">Backup</a></li>
+                                <li><a class="dropdown-item" href="#" id="restore">Restore</a></li>
+                                <li><a class="dropdown-item" href="#" id="reset">Reset Database</a></li>
                             </ul>
                         </li>
                     </ul>
@@ -114,9 +118,94 @@
                     </div>
                 {% endfor %}
             </div>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM fully loaded and parsed');
+            document.getElementById('backup').addEventListener('click', function(e) {
+                e.preventDefault(); 
+                fetch('/ntuaflix_api/admin/backup', { method: 'POST' })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log(data);
+                        if(data.status === "success") {
+                            alert('Backup of current database version created successfully! File :' + data.backup_file);
+                        }
+                        else {
+                            alert('Backup failed: ' + data.message);
+                        }
+                    })
+                    .catch(error => alert('Error: ' + error));
+            });
+
+            document.getElementById('restore').addEventListener('click', function(e) {
+                e.preventDefault();
+                if(confirm('Are you sure you want to restore the database? This cannot be undone.')) {
+                    fetch('/ntuaflix_api/admin/restore', { method: 'POST' })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if(data.status === "success") {
+                                alert('Database restore initiated successfully.');
+                            } else {
+                                alert('Restore failed: ' + data.message);
+                            }
+                        })
+                        .catch(error => alert('Error: ' + error));
+                }
+            });
+
+            document.getElementById('reset').addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log("Reset button clicked");
+                if(confirm('Are you sure you want to reset the database to its original state? This will erase all current data.')) {
+                    const loader = document.querySelector('.loader');
+                    if (!loader) {
+                        console.error('Loader element not found.');
+                        return; // Stop the function if loader is not found
+                    }
+
+                    loader.classList.remove('loader-hidden');
+                    console.log('Loader should now be visible.');
+
+                    fetch('/ntuaflix_api/admin/resetall', { method: 'POST' })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            console.log("response succesful")
+                            return response.json();
+                        })
+                        .then(data => {
+                            if(data.status === "OK") {
+                                alert('Database reset initiated successfully.');
+                            } else {
+                                alert('Reset failed: ' + data.message);
+                            }
+                        })
+                        .catch(error => {
+                            alert('Error: ' + error);
+                        })
+                        .finally(() => {
+                            if (loader) {
+                                loader.classList.add('loader-hidden');
+                                console.log('Loader should now be hidden.');
+                            }
+                        });
+                    }
+            });
+        });
+    </script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const searchTitleInput = document.getElementById('searchTitle');

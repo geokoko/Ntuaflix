@@ -13,13 +13,16 @@ load_dotenv()
 
 db_pool = None
 BACKUP_DIR = os.path.join(Path(__file__).resolve().parent.parent.parent, 'db' , 'backups')
+RESET_FILE = os.path.join(Path(__file__).resolve().parent.parent.parent, 'db' , 'data', 'database_init.py')
 
 # Resets the database to its initial state
 async def reset_database():
     try:
-        result = await asyncio.create_subprocess_exec("python3", os.path.join(Path(__file__).resolve().parent.parent.parent, 'db' , 'data', 'database_init.py'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
+        print("Starting reset procedure...")
+        result = await asyncio.create_subprocess_exec("python3", RESET_FILE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = await result.communicate()
+
+        print("Script has been executed...")
 
         if result.returncode == 0:
             return {"status": "OK", "details": stdout.decode()}
@@ -29,7 +32,7 @@ async def reset_database():
     except result.CalledProcessError as e: # catching specific subprocess error
         raise HTTPException(status_code=500, detail=f"Database reset script failed: {e.stderr}")
 
-# Creates a Backup of the most recent database version
+# Creates a Backup of the current database version
 async def create_backup():
     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
     backup_file = os.path.join(BACKUP_DIR, f"backup_{timestamp}.sql")
@@ -47,7 +50,7 @@ async def create_backup():
     except Exception as e:
         return {"status": "failed", "error": str(e)}
 
-# Picks the backup that was created first
+# Returns all the available backups
 async def pick_backup():
     try:
         backups = [BACKUP_DIR/f for f in os.listdir(BACKUP_DIR) if re.match(r'backup_\d{4}-\d{2}-\d{2}_\d{6}\.sql', f)]
@@ -76,6 +79,9 @@ async def restore():
             return {"status": "success"}
         else:
             return {"status": "failed", "error": stderr.decode()}
+    
+    except HTTPException as http_ex:
+        raise http_ex
     except Exception as e:
         return {"status": "failed", "error": str(e)}
 
