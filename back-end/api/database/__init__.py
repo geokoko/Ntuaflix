@@ -31,6 +31,9 @@ async def reset_database():
         
     except result.CalledProcessError as e: # catching specific subprocess error
         raise HTTPException(status_code=500, detail=f"Database reset script failed: {e.stderr}")
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database reset script failed: {str(e)}")
 
 # Creates a Backup of the current database version
 async def create_backup():
