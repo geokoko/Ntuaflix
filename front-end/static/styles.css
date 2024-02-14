@@ -155,15 +155,14 @@ body{
 
 /*----------------------------------------------loader---------------------------------------------------------*/
 .loader{
-    position: fixed;
-    top: 0;
-    left: 0;
+    position: relative;
     width: 100vw;
     height: 100vh;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
-    background-color: #3a255e; /* Change this to your desired background color */
+    background-color: #3a255e; 
     transition: opacity 0.75s, visibility 0.75s;
 }
 
@@ -180,6 +179,13 @@ body{
     border-top-color: #7449f5;
     border-radius: 50%;
     animation: loading 0.75s ease infinite;
+}
+
+.loader p {
+    color: #ffffff;
+    margin-top: 20px;
+    font-size: 1em; 
+    text-align: center; 
 }
 
 @keyframes loading {

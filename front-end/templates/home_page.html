@@ -124,7 +124,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM fully loaded and parsed');
             document.getElementById('backup').addEventListener('click', function(e) {
-                e.preventDefault(); 
+                e.preventDefault();
                 fetch('/ntuaflix_api/admin/backup', { method: 'POST' })
                     .then(response => {
                         if (!response.ok) {
@@ -141,12 +141,26 @@
                             alert('Backup failed: ' + data.message);
                         }
                     })
-                    .catch(error => alert('Error: ' + error));
+                    .catch(error => alert('Error: ' + error))
+                    .finally(() => {
+                            if (loader) {
+                                loader.classList.add('loader-hidden');
+                                console.log('Loader should now be hidden.');
+                            }
+                        });
             });
 
             document.getElementById('restore').addEventListener('click', function(e) {
                 e.preventDefault();
                 if(confirm('Are you sure you want to restore the database? This cannot be undone.')) {
+                    const loader = document.querySelector('.loader');
+                    if (!loader) {
+                        console.error('Loader element not found.');
+                        return; // Stop the function if loader is not found
+                    }
+
+                    loader.classList.remove('loader-hidden');
+                    console.log('Loader should now be visible.');
                     fetch('/ntuaflix_api/admin/restore', { method: 'POST' })
                         .then(response => {
                             if (!response.ok) {
@@ -161,7 +175,13 @@
                                 alert('Restore failed: ' + data.message);
                             }
                         })
-                        .catch(error => alert('Error: ' + error));
+                        .catch(error => alert('Error: ' + error))
+                        .finally(() => {
+                            if (loader) {
+                                loader.classList.add('loader-hidden');
+                                console.log('Loader should now be hidden.');
+                            }
+                        });
                 }
             });
 

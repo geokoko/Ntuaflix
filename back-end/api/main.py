@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from api.routes import routes
+from .routes import routes
 from .database import create_db_pool, close_db_pool
 from contextlib import asynccontextmanager
 import asyncio
@@ -22,4 +22,4 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.include_router(routes.router, prefix=routes.BASE_URL)
 # Mount static files
-app.mount("/static", StaticFiles(directory="../front-end/static"), name="static")
+app.mount("/static", StaticFiles(directory="front-end/static"), name="static")
