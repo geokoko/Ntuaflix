@@ -7,3 +7,4 @@ back-end/db/backups/
 Dockerfile
 docker-compose.yml
 data/
+.dockerignore

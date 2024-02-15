@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Query, Response, Request, status
+from fastapi import APIRouter, Body, HTTPException, File, UploadFile, Query, Response, Request, status
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, FileResponse, PlainTextResponse, JSONResponse
 from typing import List, Optional
-from ..models import TitleObject, NameObject, AkaTitle, PrincipalsObject, RatingObject, GenreTitle, NameTitleObject
+from ..models import TitleObject, NameObject, AkaTitle, PrincipalsObject, RatingObject, GenreTitle, NameTitleObject, tqueryObject, nqueryObject, gqueryObject
 from ..database import get_database_connection, check_connection, create_backup, restore, pick_backup, reset_database
 from ..utils.admin_helpers import insert_into_name, insert_into_profession, insert_into_profession_person, fetch_person_primary_key, check_existing_participation, update_title_ratings, insert_into_episode, insert_into_title, fetch_title_primary_key, insert_into_participates_in
 import aiomysql
@@ -369,7 +369,7 @@ async def person_details_html(request: Request, name_id: str):
        
 # Title search query
 @router.get("/searchtitle", response_model=List[TitleObject])
-async def search_titles(query: str, format_type: str = "json"):
+async def search_titles(query: tqueryObject = Body(...), format_type: str = "json"):
     if format_type not in ["json", "csv"]:
         raise HTTPException(status_code=400, detail="Unsupported format specifier")
 
@@ -378,7 +378,7 @@ async def search_titles(query: str, format_type: str = "json"):
             async with db_connection.cursor(aiomysql.DictCursor) as cursor:
                 await cursor.execute(
                     "SELECT * FROM `Title` WHERE `Original_Title` LIKE %s",
-                    (f'%{query}%',)
+                    (f'%{query.titlePart}%',)
                 )
                 titles = await cursor.fetchall()
                 if not titles:
@@ -494,36 +494,36 @@ async def search_movies_html(request: Request, query: str = Query(...)):
 
 # Genre search query
 @router.get("/bygenre", response_model=List[TitleObject])
-async def search_genre(qgenre: str, minrating: Optional[str] = 0, yrFrom: Optional[str] = None, yrTo: Optional[str] = None, format_type: str = "json"):
+async def search_genre(query: gqueryObject = Body(...), format_type: str = "json"):
     # Validate parameters
     if format_type not in ["json", "csv"]:
         raise HTTPException(status_code=400, detail="Unsupported format specifier")
 
-    if not qgenre:
+    if not query.qgenre:
         raise HTTPException(status_code=400, detail="Genre query must not be empty")
 
     try:
-        minrating = float(minrating)  # assuming minrating should be a number
+        query.minrating = float(query.minrating)  # assuming minrating should be a number
     except ValueError:
         raise HTTPException(status_code=400, detail="Minimum rating must be a valid number")
 
-    if yrFrom is not None:
+    if query.yrFrom is not None:
         try:
-            yrFrom = int(yrFrom)  # assuming yrFrom should be a valid year (integer)
-            if yrFrom < 0:
+            query.yrFrom = int(query.yrFrom)  # assuming yrFrom should be a valid year (integer)
+            if query.yrFrom < 0:
                 raise HTTPException(status_code=400, detail="Start year must be a positive integer")
         except ValueError:
             raise HTTPException(status_code=400, detail="Start year must be a valid year")
 
-    if yrTo is not None:
+    if query.yrTo is not None:
         try:
-            yrTo = int(yrTo)  # assuming yrTo should be a valid year (integer)
-            if yrTo < 0:
+            query.yrTo = int(query.yrTo)  # assuming yrTo should be a valid year (integer)
+            if query.yrTo < 0:
                 raise HTTPException(status_code=400, detail="End year must be a positive integer")
         except ValueError:
             raise HTTPException(status_code=400, detail="End year must be a valid year")
 
-    if yrFrom is not None and yrTo is not None and yrFrom > yrTo:
+    if query.yrFrom is not None and query.yrTo is not None and query.yrFrom > query.yrTo:
         raise HTTPException(status_code=400, detail="Start year must be less than or equal to end year")
     
     try:
@@ -536,17 +536,17 @@ async def search_genre(qgenre: str, minrating: Optional[str] = 0, yrFrom: Option
                     "INNER JOIN `Genre` G ON TG.`Genre_FK` = G.`ID`",
                     "WHERE G.`Genre` LIKE %s AND T.`Average_Rating` >= %s"
                 ]
-                params = [f'%{qgenre}%', minrating]
+                params = [f'%{query.qgenre}%', query.minrating]
 
-                if yrFrom is not None and yrTo is None:
+                if query.yrFrom is not None and query.yrTo is None:
                     query_parts.append("AND T.`Start_Year` >= %s")
-                    params.append(yrFrom)
-                if yrTo is not None and yrFrom is None:
+                    params.append(query.yrFrom)
+                if query.yrTo is not None and query.yrFrom is None:
                     query_parts.append("AND T.`Start_Year` <= %s")
-                    params.append(yrTo)
-                if yrTo is not None and yrFrom is not None:
+                    params.append(query.yrTo)
+                if query.yrTo is not None and query.yrFrom is not None:
                     query_parts.append("AND T. `Start_Year` BETWEEN %s AND %s")
-                    params.extend([yrFrom, yrTo])
+                    params.extend([query.yrFrom, query.yrTo])
 
                 query_parts.append("GROUP BY T.`ID`")
                 final_query = " ".join(query_parts)
@@ -680,7 +680,7 @@ async def search_movies_html(request: Request, query: str = Query(...)):
 
 # Search by name
 @router.get("/searchname", response_model=List[NameObject])
-async def search_name(query: str, format_type: str = "json"):
+async def search_name(query: nqueryObject = Body(...), format_type: str = "json"):
     if format_type not in ["json", "csv"]:
         raise HTTPException(status_code=400, detail="Unsupported format specifier")
 
@@ -689,7 +689,7 @@ async def search_name(query: str, format_type: str = "json"):
             async with db_connection.cursor(aiomysql.DictCursor) as cursor:
                 await cursor.execute("""SELECT `Name_ID`, `Name`, `IMAGE`, `Birth_Year` as birthYr, `Death_Year` as deathYr, `ID`
                                         FROM `Person` 
-                                        WHERE `Name` LIKE %s""", (f'%{query}%',))
+                                        WHERE `Name` LIKE %s""", (f'%{query.namePart}%',))
                 names = await cursor.fetchall()
                 if not names:
                     return Response(status_code=204)
