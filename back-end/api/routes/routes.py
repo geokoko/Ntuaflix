@@ -446,7 +446,7 @@ async def search_titles(query: tqueryObject = Body(...), format_type: str = "jso
                         'End Year': title.endYear,
                         'Genres': ", ".join(['' if g.genreTitle is None else str(g.genreTitle) for g in title.genres]),
                         'Title Akas': ", ".join([f"{'' if a.akaTitle is None else str(a.akaTitle)} ({'' if a.regionAbbrev is None else str(a.regionAbbrev)})" for a in title.titleAkas]),
-                        'Principals': ", ".join([f"{'' if p.name is None else str(p.name)} ({'' if p.nameID is None else str(p.name)}) ({'' if p.category is None else str(p.category)})" for p in title.principals]),
+                        'Principals': ", ".join([f"{'' if p.name is None else str(p.name)} ({'' if p.nameID is None else str(p.nameID)}) ({'' if p.category is None else str(p.category)})" for p in title.principals]),
                         'AvgRating': title.rating.avRating,
                         'nVotes': title.rating.nVotes
                     }
@@ -602,7 +602,7 @@ async def search_genre(query: gqueryObject = Body(...), format_type: str = "json
                             'End Year': title.endYear,
                             'Genres': ", ".join(['' if g.genreTitle is None else str(g.genreTitle) for g in title.genres]),
                             'Title Akas': ", ".join([f"{'' if a.akaTitle is None else str(a.akaTitle)} ({'' if a.regionAbbrev is None else str(a.regionAbbrev)})" for a in title.titleAkas]),
-                            'Principals': ", ".join([f"{'' if p.name is None else str(p.name)} ({'' if p.nameID is None else str(p.name)}) ({'' if p.category is None else str(p.category)})" for p in title.principals]),
+                            'Principals': ", ".join([f"{'' if p.name is None else str(p.name)} ({'' if p.nameID is None else str(p.nameID)}) ({'' if p.category is None else str(p.category)})" for p in title.principals]),
                             'AvgRating': title.rating.avRating,
                             'nVotes': title.rating.nVotes
                         }

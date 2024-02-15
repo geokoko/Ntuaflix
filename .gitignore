@@ -2,6 +2,7 @@
 .DS_Store
 back-end/db/data/data_processing.ipynb
 __pycache__/
+*.pyc
 back-end/myenv/
 back-end/db/backups/
 Dockerfile
