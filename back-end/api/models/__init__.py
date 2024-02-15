@@ -1,6 +1,18 @@
 from pydantic import BaseModel
 from typing import List, Optional
 
+class tqueryObject(BaseModel):
+    titlePart: str
+
+class nqueryObject(BaseModel):
+    namePart: str
+
+class gqueryObject(BaseModel):
+    qgenre: str
+    minrating: Optional[str] = None
+    yrFrom: Optional[str] = None
+    yrTo: Optional[str] = None
+
 class GenreTitle(BaseModel):
     genreTitle: Optional[str]
 
