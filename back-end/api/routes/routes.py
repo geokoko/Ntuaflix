@@ -499,8 +499,8 @@ async def search_genre(query: gqueryObject = Body(...), format_type: str = "json
     if format_type not in ["json", "csv"]:
         raise HTTPException(status_code=400, detail="Unsupported format specifier")
 
-    if not query.qgenre:
-        raise HTTPException(status_code=400, detail="Genre query must not be empty")
+    if not query.qgenre or not query.minrating:
+        raise HTTPException(status_code=400, detail="qgenre and Minrating fields must not be empty")
 
     try:
         query.minrating = float(query.minrating)  # assuming minrating should be a number

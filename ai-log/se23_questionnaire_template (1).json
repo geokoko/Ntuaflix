@@ -1,0 +1,19 @@
+{
+    "answers": {
+        "phase": "coding",
+        "action": "response classes management",
+        "scope":  "api",
+        "action experience": "little",
+        "prog lang":  "python",
+        "other prog lang": "<fill in>",
+        "tool": "chat gpt 4.x",
+        "other tool": "<fill in>",
+        "tool option": "full",
+        "tool experience": "enough",
+        "time allocated (h)": "0.2",
+        "time saved estimate (h)": "2", 
+        "quality of ai help": "ready-to-use",
+        "generic feeling": "great as-is",
+        "notes": "Helped me create and understand pydantic models"
+    }
+}

@@ -1,0 +1,123 @@
+User
+
+titleID String Το αναγνωριστικό tconst
+type String short, movie, tvEpisode
+originalTitle String Ο αυθεντικός τίτλος
+titlePoster String URL της εικόνας της ταινίας/σειράς
+startYear String Το έτος πρώτης προβολής
+endYear String Το έτος τελευταίας προβολής (αν υπάρχει)
+genres List Λίστα με τα είδη που ανήκει η ταινία/σειρά,
+με περιεχόμενα αντικείμενα που περιέχουν
+πεδία ως ακολούθως
+genreTitle String Ο τίτλος του είδους
+titleAkas List Λίστα με τους παράλληλους ("also known as")
+τίτλους της ταινίας/σειράς με περιεχόμενα
+αντικείμενα που περιέχουν πεδία ως
+ακολούθως
+akaTitle String Ο παράλληλος τίτλος
+regionAbbrev String Η περιοχή
+principals List Λίστα που περιέχει αντικείμενα που
+αντιστοιχούν σε συντελεστές, ως ακολούθως
+ΕΡΓΑΣΙΑ ΤΕΧΝΟΛΟΓΙΑΣ ΛΟΓΙΣΜΙΚΟΥ 2023-2024 ΣΕΛ 5
+Πεδίο Τύπος Περιγραφή
+nameID String Το πεδίο nconst του συντελεστή
+name String Το πεδίο primaryName του συντελεστή
+category String Το πεδίο category (director, actor, editor
+κλπ) του συντελεστή μέσα στη
+συγκεκριμένη ταινία/επεισόδιο
+rating Object Αντικείμενο με πεδία ως ακολούθως
+avRating String Μέση τιμή αξιολογήσεων της
+ταινίας/σειράς
+nVotes String Πλήθος αξιολογήσεων
+
+this is what i have to return. should i change my database attributes or fetch the data through queries?
+
+------
+
+ChatGPT
+
+Given the detailed structure you need to return, it seems you have two main options: adjusting your database schema to align with this structure or transforming the data through queries and additional processing in your application. The choice depends on various factors like the flexibility of your database schema, the complexity of the transformation logic, and the performance considerations.
+
+### 1. Adjusting Database Attributes:
+If it's feasible to modify your database schema to directly match this structure, it would simplify your data retrieval process. This approach is more straightforward but requires changes to your database, which might not always be practical, especially if the database is already in use or shared with other applications.
+
+### 2. Transforming Data Through Queries and Processing:
+If changing the database schema is not an option, you can fetch the data using your current database structure and then transform it into the required format in your application. This approach involves:
+
+- Writing queries to fetch data from different tables.
+- Processing this data in your application to fit the structure of your response model.
+
+This method is more flexible and doesn't require altering the database schema, but it might be more complex, especially if the transformations are non-trivial.
+
+### Pydantic Model:
+You should create a Pydantic model that reflects the structure you need to return. This model will help with validation and serialization of your data. For example:
+
+```python
+from pydantic import BaseModel
+from typing import List, Optional
+
+class GenreTitle(BaseModel):
+    genreTitle: str
+
+class AkaTitle(BaseModel):
+    akaTitle: str
+    regionAbbrev: str
+
+class PrincipalsObject(BaseModel):
+    nameID: str
+    name: str
+    category: str
+
+class RatingObject(BaseModel):
+    avRating: str
+    nVotes: str
+
+class TitleObject(BaseModel):
+    titleID: str
+    type: str
+    originalTitle: str
+    titlePoster: str
+    startYear: str
+    endYear: Optional[str] = None
+    genres: List[GenreTitle]
+    titleAkas: List[AkaTitle]
+    principals: List[PrincipalsObject]
+    rating: RatingObject
+```
+
+### In Your FastAPI Application:
+When you retrieve data from your database, you will need to map it to this Pydantic model. This might involve joining data from multiple tables, formatting certain fields, or aggregating information.
+
+### Example of Data Transformation:
+
+```python
+@router.get("/title/{titleID}", response_model=TitleObject)
+async def get_title(titleID: str):
+    # Fetch data from database
+    title_data = ...  # Basic data
+    genres_data = ...  # List of genres
+    akas_data = ...   # List of AKAs
+    principals_data = ...  # List of principals
+    rating_data = ...  # Rating information
+
+    # Transform and assemble the data into the structure of TitleObject
+    title_object = TitleObject(
+        titleID=title_data["Title_ID"],
+        type=title_data["Type"],
+        originalTitle=title_data["Original_Title"],
+        titlePoster=title_data["IMAGE"],
+        startYear=str(title_data["Start_Year"]),
+        endYear=str(title_data["End_Year"]) if title_data["End_Year"] else None,
+        genres=[GenreTitle(genreTitle=g) for g in genres_data],
+        titleAkas=[AkaTitle(**a) for a in akas_data],
+        principals=[PrincipalsObject(**p) for p in principals_data],
+        rating=RatingObject(**rating_data)
+    )
+    return title_object
+```
+
+In this example, replace the `...` with the actual logic to fetch data from your database. You will need to adjust this to match your actual database queries and data structure. This approach gives you the flexibility to adapt to the required response structure without modifying the database schema.
+
+------
+
+ 
