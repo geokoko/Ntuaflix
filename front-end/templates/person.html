@@ -54,11 +54,13 @@
                     {% if person.Image is not none %}
                         <img class="img-fluid" src="{{ person.Image | replace('{width_variable}', 'w500') }}">
                     {% else %}
-                        <img class="no-image-placeholder" src="{{url_for('static', path='sad-popcorn.png')}}" style="max-width:340px; height:350px;">
+                    <div class="container-fluid" style="max-height:300px;">
+                        <img class="img-fluid" src="{{url_for('static', path='sad-popcorn.png')}}">
                             <div class="row g-0" style="height:45px; text-align:center; padding:8px; background-color:white;">
                                 <h4 style="color:black; font-weight:800">No Image Available
                                 </h4>
                             </div>
+                    </div>
                     {% endif %}    
                 </div>
 

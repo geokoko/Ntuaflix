@@ -68,7 +68,7 @@ async def fetch_profession_primary_key(profession_name):
         
 #Admin Endpoint 5
 async def check_existing_participation(name_fk, title_fk, job_category):
-    values = [None if (val == '\\N' or val == '/N') else val for val in values]
+    #values = [None if (val == '\\N' or val == '/N') else val for val in values]
 
     query = "SELECT 1 FROM `Participates_In` WHERE `Name_FK` = %s AND `Title_FK` = %s AND `Job_Category` = %s LIMIT 1"
     async with await get_database_connection() as connection, connection.cursor() as cursor:

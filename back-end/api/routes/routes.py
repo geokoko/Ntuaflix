@@ -24,12 +24,8 @@ async def browse_titles_html(request: Request):
             async with db_connection.cursor(aiomysql.DictCursor) as cursor:
                 await cursor.execute("""SELECT `Title_ID`, `Original_Title`, `Average_Rating`, `IMAGE` 
                                         FROM `Title`
-                                        WHERE `IMAGE` IS NOT NULL AND `IMAGE` != ''
-                                        ORDER BY RAND()
-                                        LIMIT 9;""")
+                                        ORDER BY RAND();""")
                 titles = await cursor.fetchall()
-                if not titles:
-                    raise HTTPException(status_code=404, detail="No titles found")
 
                 return templates.TemplateResponse("home_page.html", {"request": request, "title_list": titles})
     except HTTPException as http_ex:
@@ -142,9 +138,8 @@ async def title_details_html(request: Request, title_id: str):
                                         FROM `Title`
                                         WHERE `Title_ID` = %s;""", (title_id))
                 title = await cursor.fetchone()
-                if not title:
-                    raise HTTPException(status_code=204, detail="No titles found")
                 ID = title["ID"]
+                print(title)
                 
                 await cursor.execute("""SELECT G.`Genre` as `genreTitle`
                                         FROM `Title` T
@@ -166,7 +161,7 @@ async def title_details_html(request: Request, title_id: str):
                                         WHERE T .`ID` = %s;""", (ID,))
           
                 akas_data = await cursor.fetchall()
-                
+                print(akas_data)
                 akas = []
                 for entry in akas_data: 
                     aka_title = entry['akaTitle']
@@ -189,8 +184,7 @@ async def title_details_html(request: Request, title_id: str):
                                             WHERE pi2.`Title_FK` = %s);""", (ID,))
                 
                 principals_data = await cursor.fetchall()
-                if not principals_data:
-                    raise HTTPException(status_code=404, detail="No principals found")
+                print(principals_data)
                 directors = []
                 writers = []
                 actors = []
@@ -336,8 +330,6 @@ async def person_details_html(request: Request, name_id: str):
                 except Exception as e: 
                     print(f"Error: {e}")
                 person = await cursor.fetchone()
-                if not person: 
-                    return Response(status_code=204)
                 
                 person_ID = person["ID"]
              
@@ -1028,7 +1020,8 @@ async def upload_title_crew(file: UploadFile = File(...)):
                     # Check if the director's name_id exists in the 'Name' table
                     director_name_fk = await fetch_person_primary_key(director_id)
                     if director_name_fk is None:
-                        raise ValueError(f"Person with Name_ID {director_id} doesn't exist in the database.")
+                        print(f"Person with Name_ID {director_id} doesn't exist in the database. Skip insertion")
+                        continue
 
                     # Check if the title_id exists in the 'Title' table
                     title_fk = await fetch_title_primary_key(title_id)
@@ -1054,7 +1047,8 @@ async def upload_title_crew(file: UploadFile = File(...)):
                     # Check if the writer's name_id exists in the 'Name' table
                     writer_name_fk = await fetch_person_primary_key(writer_id)
                     if writer_name_fk is None:
-                        raise ValueError(f"Person with Name_ID {writer_id} doesn't exist in the database.")
+                        print(f"Person with Name_ID {writer_id} doesn't exist in the database. Skip insertion")
+                        continue
 
                     # Check if the title_id exists in the 'Title' table
                     title_fk = await fetch_title_primary_key(title_id)

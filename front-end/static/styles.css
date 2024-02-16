@@ -36,8 +36,7 @@ body{
     font-weight: bold;
     font-size: 48px !important;
     color: var(--logo) !important;
-    position: absolute;
-    left: 188px;
+    margin-left: 188px;
 }
 /*---------------------------------------------------------------------------------------------------------------*/
 
@@ -116,9 +115,8 @@ body{
 
 /*-----------------------------------------styles concerning rating object---------------------------------------*/
 .rating {
-    display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: end;
     background-color: #3a255e; /* Change this to your desired background color */
     padding-right: 10px;
     border-radius: 10px; /* Add border-radius for rounded corners */
@@ -154,45 +152,29 @@ body{
 /*-------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------loader---------------------------------------------------------*/
-.loader{
-    position: relative;
-    width: 100vw;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+#loader{
+    display:none;
+     
+}
+
+#loader.show{
+    border: 12px solid #f3f3f3;
+    border-radius: 50%;
+    border-top: 12px solid #444444;
+    width: 100px;
+    height: 100px;
     align-items: center;
     background-color: #3a255e; 
-    transition: opacity 0.75s, visibility 0.75s;
+    animation: spin 1s linear infinite;
+}
+.center{
+    position: absolute; 
+    top: 50%; 
+    left: 50%; 
 }
 
-.loader-hidden{
-    opacity: 0;
-    visibility: hidden;
-}
-
-.loader::after{
-    content: "";
-    width: 75px;
-    height: 75px;
-    border: 15px solid #dddddd;
-    border-top-color: #7449f5;
-    border-radius: 50%;
-    animation: loading 0.75s ease infinite;
-}
-
-.loader p {
-    color: #ffffff;
-    margin-top: 20px;
-    font-size: 1em; 
-    text-align: center; 
-}
-
-@keyframes loading {
-    from{
-        transform: rotate(0turn);
-    }
-    to{
-        transform: rotate(1turn);
+@keyframes spin {
+    100% {
+        transform: rotate(360deg);
     }
 }
