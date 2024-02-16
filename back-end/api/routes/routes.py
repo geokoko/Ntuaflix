@@ -6,11 +6,13 @@ from ..models import TitleObject, NameObject, AkaTitle, PrincipalsObject, Rating
 from ..database import get_database_connection, check_connection, create_backup, restore, pick_backup, reset_database
 from ..utils.admin_helpers import insert_into_name, insert_into_profession, insert_into_profession_person, fetch_person_primary_key, check_existing_participation, update_title_ratings, insert_into_episode, insert_into_title, fetch_title_primary_key, insert_into_participates_in
 import aiomysql
-from typing import Optional
+from typing import Optional, Union
 import pandas as pd
+import requests
 import csv
 import os
 from io import StringIO
+import aiofiles
 
 router = APIRouter()
 BASE_URL = "/ntuaflix_api"
@@ -24,12 +26,8 @@ async def browse_titles_html(request: Request):
             async with db_connection.cursor(aiomysql.DictCursor) as cursor:
                 await cursor.execute("""SELECT `Title_ID`, `Original_Title`, `Average_Rating`, `IMAGE` 
                                         FROM `Title`
-                                        WHERE `IMAGE` IS NOT NULL AND `IMAGE` != ''
-                                        ORDER BY RAND()
-                                        LIMIT 9;""")
+                                        ORDER BY RAND();""")
                 titles = await cursor.fetchall()
-                if not titles:
-                    raise HTTPException(status_code=404, detail="No titles found")
 
                 return templates.TemplateResponse("home_page.html", {"request": request, "title_list": titles})
     except HTTPException as http_ex:
@@ -39,8 +37,8 @@ async def browse_titles_html(request: Request):
 
 # Browse a specific Title (json, csv format)
 @router.get("/title/{titleID}", response_model=TitleObject)
-async def get_title_details(titleID: str, format_type: str = "json"):
-    if format_type not in ["json", "csv"]:
+async def get_title_details(titleID: str, format: str = "json"):
+    if format not in ["json", "csv"]:
         raise HTTPException(status_code=400, detail="Unsupported format specifier")
 
     try:
@@ -96,9 +94,9 @@ async def get_title_details(titleID: str, format_type: str = "json"):
                     rating=RatingObject(avRating=str(title_data["Average_Rating"]), nVotes=str(title_data["Votes"]))
                 )
 
-                if format_type == "json":
+                if format == "json":
                     return title_object
-                elif format_type == "csv":
+                elif format == "csv":
                     title_data = [{
                             'tconst': title_object.titleID,
                             'Type': title_object.type,
@@ -121,7 +119,7 @@ async def get_title_details(titleID: str, format_type: str = "json"):
                     df.to_csv(output, index=False)
                     output.seek(0)
 
-                    return Response(content=output.getvalue(), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=search_results.csv"})
+                    return Response(content=output.getvalue(), media_type="text/plain")
 
                 else:
                     raise HTTPException(status_code=400, detail="Unsupported format specifier")
@@ -142,9 +140,8 @@ async def title_details_html(request: Request, title_id: str):
                                         FROM `Title`
                                         WHERE `Title_ID` = %s;""", (title_id))
                 title = await cursor.fetchone()
-                if not title:
-                    raise HTTPException(status_code=204, detail="No titles found")
                 ID = title["ID"]
+                print(title)
                 
                 await cursor.execute("""SELECT G.`Genre` as `genreTitle`
                                         FROM `Title` T
@@ -166,7 +163,7 @@ async def title_details_html(request: Request, title_id: str):
                                         WHERE T .`ID` = %s;""", (ID,))
           
                 akas_data = await cursor.fetchall()
-                
+                print(akas_data)
                 akas = []
                 for entry in akas_data: 
                     aka_title = entry['akaTitle']
@@ -189,8 +186,7 @@ async def title_details_html(request: Request, title_id: str):
                                             WHERE pi2.`Title_FK` = %s);""", (ID,))
                 
                 principals_data = await cursor.fetchall()
-                if not principals_data:
-                    raise HTTPException(status_code=404, detail="No principals found")
+                print(principals_data)
                 directors = []
                 writers = []
                 actors = []
@@ -237,8 +233,8 @@ async def title_details_html(request: Request, title_id: str):
 
 # Browse a certain person
 @router.get("/name/{nameID}", response_model=NameObject)
-async def get_name_details(nameID: str, format_type: str = "json"):
-    if format_type not in ["json", "csv"]:
+async def get_name_details(nameID: str, format: str = "json"):
+    if format not in ["json", "csv"]:
         raise HTTPException(status_code=400, detail="Unsupported format specifier")
 
     try:
@@ -291,9 +287,9 @@ async def get_name_details(nameID: str, format_type: str = "json"):
                     nameTitles=name_title_objects
                 )
                 
-                if format_type == "json":
+                if format == "json":
                     return name_object
-                elif format_type == "csv":
+                elif format == "csv":
                     name_data = [{
                         'nconst': name_object.nameID,
                         'Name': name_object.name,
@@ -312,7 +308,7 @@ async def get_name_details(nameID: str, format_type: str = "json"):
                     df.to_csv(output, index=False)
                     output.seek(0)
 
-                    return Response(content=output.getvalue(), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=search_results.csv"})
+                    return Response(content=output.getvalue(), media_type="text/plain")
             
                 else:
                     raise HTTPException(status_code=400, detail="Unsupported format specifier")
@@ -336,8 +332,6 @@ async def person_details_html(request: Request, name_id: str):
                 except Exception as e: 
                     print(f"Error: {e}")
                 person = await cursor.fetchone()
-                if not person: 
-                    return Response(status_code=204)
                 
                 person_ID = person["ID"]
              
@@ -369,8 +363,8 @@ async def person_details_html(request: Request, name_id: str):
        
 # Title search query
 @router.get("/searchtitle", response_model=List[TitleObject])
-async def search_titles(query: tqueryObject = Body(...), format_type: str = "json"):
-    if format_type not in ["json", "csv"]:
+async def search_titles(query: tqueryObject = Body(...), format: str = "json"):
+    if format not in ["json", "csv"]:
         raise HTTPException(status_code=400, detail="Unsupported format specifier")
 
     try:
@@ -434,7 +428,7 @@ async def search_titles(query: tqueryObject = Body(...), format_type: str = "jso
 
                     full_titles.append(title_object)
 
-            if format_type == "csv":
+            if format == "csv":
                 titles_data = []
                 for title in full_titles:
                     title_dict = {
@@ -461,9 +455,9 @@ async def search_titles(query: tqueryObject = Body(...), format_type: str = "jso
                 df.to_csv(output, index=False)
                 output.seek(0)
 
-                return Response(content=output.getvalue(), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=search_results.csv"})
+                return Response(content=output.getvalue(), media_type="text/plain")
             
-            elif format_type == "json":
+            elif format == "json":
                 return full_titles
             
             else:
@@ -494,34 +488,40 @@ async def search_movies_html(request: Request, query: str = Query(...)):
 
 # Genre search query
 @router.get("/bygenre", response_model=List[TitleObject])
-async def search_genre(query: gqueryObject = Body(...), format_type: str = "json"):
+async def search_genre(query: gqueryObject = Body(...), format: str = "json"):
     # Validate parameters
-    if format_type not in ["json", "csv"]:
+    if format not in ["json", "csv"]:
         raise HTTPException(status_code=400, detail="Unsupported format specifier")
 
-    if not query.qgenre or not query.minrating:
-        raise HTTPException(status_code=400, detail="qgenre and Minrating fields must not be empty")
-
+    if not (query.qgenre and query.minrating):
+        raise HTTPException(status_code=400, detail="Genre and Minrating query must not be empty")
+    
     try:
         query.minrating = float(query.minrating)  # assuming minrating should be a number
     except ValueError:
         raise HTTPException(status_code=400, detail="Minimum rating must be a valid number")
 
-    if query.yrFrom is not None:
+    if query.yrFrom is not None and query.yrTo is None:
         try:
             query.yrFrom = int(query.yrFrom)  # assuming yrFrom should be a valid year (integer)
             if query.yrFrom < 0:
                 raise HTTPException(status_code=400, detail="Start year must be a positive integer")
         except ValueError:
             raise HTTPException(status_code=400, detail="Start year must be a valid year")
+        
+        raise HTTPException(status_code=400, detail="YearFrom and YearTo are optional but mutually mandatory if provided")
 
-    if query.yrTo is not None:
+
+    if query.yrTo is not None and query.yrFrom is None:
         try:
             query.yrTo = int(query.yrTo)  # assuming yrTo should be a valid year (integer)
             if query.yrTo < 0:
                 raise HTTPException(status_code=400, detail="End year must be a positive integer")
         except ValueError:
             raise HTTPException(status_code=400, detail="End year must be a valid year")
+        
+        raise HTTPException(status_code=400, detail="YearFrom and YearTo are optional but mutually mandatory if provided")
+    
 
     if query.yrFrom is not None and query.yrTo is not None and query.yrFrom > query.yrTo:
         raise HTTPException(status_code=400, detail="Start year must be less than or equal to end year")
@@ -539,11 +539,9 @@ async def search_genre(query: gqueryObject = Body(...), format_type: str = "json
                 params = [f'%{query.qgenre}%', query.minrating]
 
                 if query.yrFrom is not None and query.yrTo is None:
-                    query_parts.append("AND T.`Start_Year` >= %s")
-                    params.append(query.yrFrom)
+                    raise HTTPException(status_code=400, detail="YearFrom and YearTo are optional but mutually mandatory if provided")
                 if query.yrTo is not None and query.yrFrom is None:
-                    query_parts.append("AND T.`Start_Year` <= %s")
-                    params.append(query.yrTo)
+                    raise HTTPException(status_code=400, detail="YearFrom and YearTo are optional but mutually mandatory if provided")
                 if query.yrTo is not None and query.yrFrom is not None:
                     query_parts.append("AND T. `Start_Year` BETWEEN %s AND %s")
                     params.extend([query.yrFrom, query.yrTo])
@@ -582,7 +580,7 @@ async def search_genre(query: gqueryObject = Body(...), format_type: str = "json
                         titlePoster=title["IMAGE"],
                         startYear=str(title["Start_Year"]),
                         endYear=str(title["End_Year"]) if title["End_Year"] else None,
-                        genres =[{"genre": genre} for genre in title["Genres"].split(',')] if title["Genres"] else [],
+                        genres =[GenreTitle(genreTitle=genre) for genre in title["Genres"].split(',')] if title["Genres"] else [],
                         titleAkas=[AkaTitle(**a) for a in akas_data],
                         principals=[PrincipalsObject(**p) for p in principals_data],
                         rating=RatingObject(avRating=str(title["Average_Rating"]), nVotes=str(title["Votes"]))
@@ -590,7 +588,7 @@ async def search_genre(query: gqueryObject = Body(...), format_type: str = "json
 
                     title_objects.append(title_object)
                 
-                if format_type == "csv":
+                if format == "csv":
                     titles_data = []
                     for title in title_objects:
                         title_dict = {
@@ -617,9 +615,9 @@ async def search_genre(query: gqueryObject = Body(...), format_type: str = "json
                     df.to_csv(output, index=False)
                     output.seek(0)
 
-                    return Response(content=output.getvalue(), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=search_results.csv"})
+                    return Response(content=output.getvalue(), media_type="text/plain")
                 
-                elif format_type == "json":
+                elif format == "json":
                     return title_objects
                 
                 else:
@@ -654,7 +652,7 @@ async def search_movies_html(request: Request, query: str = Query(...)):
                         part = float(part)
                         await cursor.execute("""SELECT t.`Title_ID`, t.`Original_Title`, t.`Average_Rating`, t.`IMAGE` 
                                              FROM `Title` t
-                                             WHERE `Average_Rating` = %s;""", (part,))
+                                             WHERE `Average_Rating` >= %s;""", (part,))
                     # Otherwise, assume it's a string
                     else:
                         part = f"%{part}%"
@@ -680,8 +678,8 @@ async def search_movies_html(request: Request, query: str = Query(...)):
 
 # Search by name
 @router.get("/searchname", response_model=List[NameObject])
-async def search_name(query: nqueryObject = Body(...), format_type: str = "json"):
-    if format_type not in ["json", "csv"]:
+async def search_name(query: nqueryObject = Body(...), format: str = "json"):
+    if format not in ["json", "csv"]:
         raise HTTPException(status_code=400, detail="Unsupported format specifier")
 
     try:
@@ -739,9 +737,9 @@ async def search_name(query: nqueryObject = Body(...), format_type: str = "json"
                     
                     result.append(name_object)
                 
-            if format_type == "json":
+            if format == "json":
                 return result
-            elif format_type == "csv":
+            elif format == "csv":
                 name_data = [{
                     'nconst': name_object.nameID,
                     'Name': name_object.name,
@@ -760,7 +758,7 @@ async def search_name(query: nqueryObject = Body(...), format_type: str = "json"
                 df.to_csv(output, index=False)
                 output.seek(0)
 
-                return Response(content=output.getvalue(), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=search_results.csv"})
+                return Response(content=output.getvalue(), media_type="text/plain")
     
     except HTTPException as http_ex:
         raise http_ex
@@ -825,6 +823,7 @@ async def initiate_backup():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
+    
 # Admin restore backup
 @router.post("/admin/restore")
 async def initiate_restore():
@@ -833,20 +832,84 @@ async def initiate_restore():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Admin reset database to original state 
 @router.post("/admin/resetall")
 async def initiate_reset():
     try:
-        return await reset_database()
-    except Exception as e: # catching other exceptions
-        raise HTTPException(status_code=500, detail=str(e))
+        async with await get_database_connection() as connection, connection.cursor() as cursor:
+            tables_to_drop = [
+                        "Participates_In", 
+                        "Title_Genre", 
+                        "Profession_Person", 
+                        "Alt_Title", 
+                        "Episode", 
+                        "Person", 
+                        "Genre", 
+                        "Profession", 
+                        "Title"
+                    ]
+
+            # Execute DROP TABLE statements
+            for table in reversed(tables_to_drop):
+                await cursor.execute(f"DELETE FROM `{table}`")
+            await connection.commit()
+    
+            # Get the directory of the current script
+            current_dir = os.path.dirname(os.path.realpath(__file__))
+            
+            #Upload Titles
+            titles = os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_title.basics.tsv')
+            async with aiofiles.open(titles, mode='rb') as file:
+                await upload_title_basics(titles)
+
+            #Upload Title Akas
+            title_akas = os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_title.akas.tsv')
+            async with aiofiles.open(title_akas, mode='rb') as file:
+                await upload_title_akas(title_akas)
+            
+            #Upload Names
+            name = os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_name.basics.tsv')
+            async with aiofiles.open(name, mode='rb') as file:
+                await upload_name_basics(name)
+                
+            #Upload Crew
+            #crew = os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_title.crew.tsv')
+            #async with aiofiles.open(crew, mode='rb') as file:
+                #await upload_title_crew(crew)
+                
+            #Upload Episodes
+            episode = os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_title.episode.tsv')
+            async with aiofiles.open(episode, mode='rb') as file:
+                await upload_title_episode(episode)
+                
+            #Upload Principals
+            principal = os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_title.principals.tsv')
+            async with aiofiles.open(principal, mode='rb') as file:
+                await upload_title_principals(principal)
+                
+            #Upload Rating
+            rating = os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_title.ratings.tsv')
+            async with aiofiles.open(rating, mode='rb') as file:
+                await upload_title_ratings(rating)
+            
+
+                    
+        return {"message": "Database reset and initial data uploaded successfully"}
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))    
+
 
 # endpoint 2
 @router.post("/admin/upload/titlebasics")
-async def upload_title_basics(file: UploadFile = File(...)):
+async def upload_title_basics(file: Union[UploadFile, str]):
     try:
-        # Read the TSV file into a DataFrame
-        df = pd.read_csv(file.file, sep='\t', low_memory=False)
+        print("Endpoint 2")
+        # Check if 'file' is a string (filename)
+        if isinstance(file, str):
+            with open(file, 'r') as f:
+                df = pd.read_csv(f, sep='\t', low_memory=False)
+        else:  # 'file' is an UploadFile
+            df = pd.read_csv(file.file, sep='\t', low_memory=False)
 
         # Iterate over DataFrame rows and insert data into the database
         async with await get_database_connection() as connection, connection.cursor() as cursor:
@@ -911,10 +974,14 @@ async def upload_title_basics(file: UploadFile = File(...)):
 
 # endpoint 3
 @router.post("/admin/upload/titleakas")
-async def upload_title_akas(file: UploadFile = File(...)):
+async def upload_title_akas(file: Union[UploadFile, str]):
     try:
-        # Read the TSV file into a DataFrame
-        df = pd.read_csv(file.file, sep='\t', low_memory=False)
+        print("Endpoint 3")
+        if isinstance(file, str):
+            with open(file, 'r') as f:
+                df = pd.read_csv(f, sep='\t', low_memory=False)
+        else:  # 'file' is an UploadFile
+            df = pd.read_csv(file.file, sep='\t', low_memory=False)
 
         # Collect errors to include in the final response
         errors = []
@@ -928,13 +995,13 @@ async def upload_title_akas(file: UploadFile = File(...)):
                 region = row['region']
 
                 # Replace '\N' values with None
-                if title_id == '\\N':
+                if (title_id == '\\N' or title_id =='/N'):
                     title_id = None
-                if ordering == '\\N':
+                if (ordering == '\\N' or ordering == '/N'):
                     ordering = None
-                if title_aka == '\\N':
+                if (title_aka == '\\N' or title_aka == '/N'):
                     title_aka = None
-                if region == '\\N':
+                if (region == '\\N' or region == '/N'):
                     region = None
 
                 try:
@@ -968,10 +1035,13 @@ async def upload_title_akas(file: UploadFile = File(...)):
 
 #Admin Endpoint 4
 @router.post("/admin/upload/namebasics")
-async def upload_name_basics(file: UploadFile = File(...)):
+async def upload_name_basics(file: Union[UploadFile, str]):
     try:
-        # Read the TSV file into a DataFrame
-        df = pd.read_csv(file.file, sep='\t', low_memory=False)
+        if isinstance(file, str):
+            with open(file, 'r') as f:
+                df = pd.read_csv(f, sep='\t', low_memory=False)
+        else:  # 'file' is an UploadFile
+            df = pd.read_csv(file.file, sep='\t', low_memory=False)
 
         # Iterate over DataFrame rows and insert data into the database
         for _, row in df.iterrows():
@@ -1005,13 +1075,16 @@ async def upload_name_basics(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-#Admin Endpoint 5
 
+#Admin Endpoint 5
 @router.post("/admin/upload/titlecrew")
-async def upload_title_crew(file: UploadFile = File(...)):
+async def upload_title_crew(file: Union[UploadFile, str]):
     try:
-        # Read the TSV file into a DataFrame
-        df = pd.read_csv(file.file, sep='\t', low_memory=False)
+        if isinstance(file, str):
+            with open(file, 'r') as f:
+                df = pd.read_csv(f, sep='\t', low_memory=False)
+        else:  # 'file' is an UploadFile
+            df = pd.read_csv(file.file, sep='\t', low_memory=False)
 
         # Collect errors to include in the final response
         errors = []
@@ -1028,7 +1101,8 @@ async def upload_title_crew(file: UploadFile = File(...)):
                     # Check if the director's name_id exists in the 'Name' table
                     director_name_fk = await fetch_person_primary_key(director_id)
                     if director_name_fk is None:
-                        raise ValueError(f"Person with Name_ID {director_id} doesn't exist in the database.")
+                        print(f"Person with Name_ID {director_id} doesn't exist in the database. Skip insertion")
+                        continue
 
                     # Check if the title_id exists in the 'Title' table
                     title_fk = await fetch_title_primary_key(title_id)
@@ -1054,7 +1128,8 @@ async def upload_title_crew(file: UploadFile = File(...)):
                     # Check if the writer's name_id exists in the 'Name' table
                     writer_name_fk = await fetch_person_primary_key(writer_id)
                     if writer_name_fk is None:
-                        raise ValueError(f"Person with Name_ID {writer_id} doesn't exist in the database.")
+                        print(f"Person with Name_ID {writer_id} doesn't exist in the database. Skip insertion")
+                        continue
 
                     # Check if the title_id exists in the 'Title' table
                     title_fk = await fetch_title_primary_key(title_id)
@@ -1088,10 +1163,13 @@ async def upload_title_crew(file: UploadFile = File(...)):
 
 #Admin Endpoint 6
 @router.post("/admin/upload/titleepisode")
-async def upload_title_episode(file: UploadFile = File(...)):
+async def upload_title_episode(file: Union[UploadFile, str]):
     try:
-        # Read the TSV file into a DataFrame
-        df = pd.read_csv(file.file, sep='\t', low_memory=False)
+        if isinstance(file, str):
+            with open(file, 'r') as f:
+                df = pd.read_csv(f, sep='\t', low_memory=False)
+        else:  # 'file' is an UploadFile
+            df = pd.read_csv(file.file, sep='\t', low_memory=False)
 
         # Collect errors to include in the final response
         errors = []
@@ -1129,15 +1207,19 @@ async def upload_title_episode(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+#Endpoint 7
 @router.post("/admin/upload/titleprincipals")
-async def upload_title_principals(file: UploadFile = File(...)):
+async def upload_title_principals(file: Union[UploadFile, str]):
     try:
         # Check if the uploaded file is of the correct format
-        if not file.filename.endswith(".tsv"):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uploaded file must be in TSV format")
+        #if not file.filename.endswith(".tsv"):
+            #raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uploaded file must be in TSV format")
         
-        # Read the TSV file into a DataFrame
-        df = pd.read_csv(file.file, sep='\t', low_memory=False)
+        if isinstance(file, str):
+            with open(file, 'r') as f:
+                df = pd.read_csv(f, sep='\t', low_memory=False)
+        else:  # 'file' is an UploadFile
+            df = pd.read_csv(file.file, sep='\t', low_memory=False)
         
         expected_columns = ['tconst', 'nconst', 'ordering', 'category', 'characters']
 
@@ -1184,17 +1266,20 @@ async def update_title_ratings(title_id, average_rating, num_votes):
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
 
 
-# Endpoint for uploading title ratings
+# Endpoint 8 for uploading title ratings
 @router.post("/admin/upload/titleratings")
-async def upload_title_ratings(file: UploadFile = File(...)):
+async def upload_title_ratings(file: Union[UploadFile, str]):
     try:
         
         # Check if the uploaded file is of the correct format
-        if not file.filename.endswith(".tsv"):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uploaded file must be in TSV format")
+        #if not file.filename.endswith(".tsv"):
+            #raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uploaded file must be in TSV format")
         
-        # Read the TSV file into a DataFrame
-        df = pd.read_csv(file.file, sep='\t', low_memory=False)
+        if isinstance(file, str):
+            with open(file, 'r') as f:
+                df = pd.read_csv(f, sep='\t', low_memory=False)
+        else:  # 'file' is an UploadFile
+            df = pd.read_csv(file.file, sep='\t', low_memory=False)
         
         expected_columns = ['tconst', 'averageRating', 'numVotes']
 

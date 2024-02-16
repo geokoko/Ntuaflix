@@ -12,6 +12,9 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     </head>
     <body>
+
+        <div id="loader" class="center"></div>
+
         <!-- Navigation -->
         <nav class="navbar navbar-expand-sm justify-content-end fixed-top">
             <div class="container-fluid">
@@ -27,7 +30,7 @@
                             <a class="nav-link" href="/ntuaflix_api/html">Home</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="/ntuaflix_api/uploads/html">Upload</a>
+                            <a class="nav-link" href="/ntuaflix_api/uploads_html">Upload</a>
                         </li>
 
                         <!--We make sure the admin operations are grouped together-->
@@ -54,7 +57,7 @@
                         <p style="font-size:30px;">Upload tsv files with data concerning movie titles </p>
                     </div>
                     <div class="row g-0 m-3">
-                        <form id="uploadForm2" action="/ntuaflix_api/admin/upload/titles" method="post" enctype="multipart/form-data">
+                        <form id="uploadForm2" action="/ntuaflix_api/admin/upload/titlebasics" method="post" enctype="multipart/form-data">
                             <div class="upload-form">
                                 <label for="endpoint2" class="form-label"></label>
                                 <input class="form-control custom-file-input" type="file" id="endpoint2">
@@ -68,30 +71,59 @@
                 <div class="col-sm-1"></div>
             </div>
             <script>
+                document.onreadystatechange = function () {
+                    if (document.readyState !== "complete") {
+                        document.querySelector("#loader").style.display = "visible";
+                        document.querySelector("body").style.visibility = "hidden";
+                    } else {
+                        document.querySelector("#loader").style.display = "none";
+                        document.querySelector("body").style.visibility = "visible";
+                    }
+                };
                 document.getElementById("uploadForm2").addEventListener("submit", function(event) {
+
+                    const loaderDiv = document.getElementById('loader'); 
+
+                    function showLoader() {
+                        loaderDiv.classList.add('show');
+                        document.querySelector("body").style.visibility = "hidden";
+                    }
+
+                    function hideLoader() {
+                        loaderDiv.classList.remove('show');
+                        document.querySelector("body").style.visibility = "visible";
+                    }
                     event.preventDefault();
+
                     const formData = new FormData();
                     const fileInput = document.getElementById("endpoint2").files[0];
                     formData.append("file", fileInput);
-                    fetch("/ntuaflix_api/admin/upload/titles", {
+
+                    showLoader();
+                    console.log("Fetch called");
+                    fetch("/ntuaflix_api/admin/upload/titlebasics", {
                         method: "POST",
-                        body: formData
+                        body: formData,
                     })
                     .then(response => {
                         if (response.ok) {
                             window.alert("File uploaded successfully!");
+                            window.location.reload();
                         }
                         else {
                             window.alert("Error uploading file");
+                            window.location.reload();
                         }
                     })
                     .then(data => {
                         console.log(data);
                         // Handle response from server
+                        hideLoader();
                     })
                     .catch(error => {
                         console.error("Error:", error);
                         window.alert("An error occured. Try again later");
+                        window.location.reload();
                     });
                 });
             </script>
@@ -118,11 +150,33 @@
                 <div class="col-sm-1"></div>
             </div>
             <script>
+                document.onreadystatechange = function () {
+                    if (document.readyState !== "complete") {
+                        document.querySelector("#loader").style.display = "visible";
+                        document.querySelector("body").style.visibility = "hidden";
+                    } else {
+                        document.querySelector("#loader").style.display = "none";
+                        document.querySelector("body").style.visibility = "visible";
+                    }
+                };
+
                 document.getElementById("uploadForm3").addEventListener("submit", function(event) {
+                     const loaderDiv = document.getElementById('loader'); 
+
+                    function showLoader() {
+                        loaderDiv.classList.add('show');
+                        document.querySelector("body").style.visibility = "hidden";
+                    }
+
+                    function hideLoader() {
+                        loaderDiv.classList.remove('show');
+                        document.querySelector("body").style.visibility = "visible";
+                    }
                     event.preventDefault();
                     const formData = new FormData();
                     const fileInput = document.getElementById("endpoint3").files[0];
                     formData.append("file", fileInput);
+                    showLoader();
                     fetch("/ntuaflix_api/admin/upload/titleakas", {
                         method: "POST",
                         body: formData
@@ -130,18 +184,22 @@
                     .then(response => {
                         if (response.ok) {
                             window.alert("File uploaded successfully!");
+                            window.location.reload();
                         }
                         else {
                             window.alert("Error uploading file");
+                            window.location.reload();
                         }
                     })
                     .then(data => {
                         console.log(data);
                         // Handle response from server
+                        hideLoader();
                     })
                     .catch(error => {
                         console.error("Error:", error);
                         window.alert("An error occured. Try again later");
+                        window.location.reload();
                     });
                 });
             </script>   
@@ -160,7 +218,7 @@
                                 <input class="form-control custom-file-input" type="file" id="endpoint4" name="file">
                             </div>
                             <div class="row g-0 m-3 justify-content-center">
-                                <button class = "btn btn-outline-dark" type="submit" style="width: 90px;">Upload</button>
+                                <button class = "btn btn-outline-dark" onclick="" style="width: 90px;">Upload</button>
                             </div>
                         </form>
                     </div>
@@ -169,11 +227,32 @@
             </div>
 
             <script>
+                document.onreadystatechange = function () {
+                    if (document.readyState !== "complete") {
+                        document.querySelector("#loader").style.display = "visible";
+                        document.querySelector("body").style.visibility = "hidden";
+                    } else {
+                        document.querySelector("#loader").style.display = "none";
+                        document.querySelector("body").style.visibility = "visible";
+                    }
+                };
                 document.getElementById("uploadForm4").addEventListener("submit", function(event) {
+                    const loaderDiv = document.getElementById('loader'); 
+
+                    function showLoader() {
+                        loaderDiv.classList.add('show');
+                        document.querySelector("body").style.visibility = "hidden";
+                    }
+
+                    function hideLoader() {
+                        loaderDiv.classList.remove('show');
+                        document.querySelector("body").style.visibility = "visible";
+                    }
                     event.preventDefault();
                     const formData = new FormData();
                     const fileInput = document.getElementById("endpoint4").files[0];
                     formData.append("file", fileInput);
+                    showLoader();
                     fetch("/ntuaflix_api/admin/upload/namebasics", {
                         method: "POST",
                         body: formData
@@ -181,18 +260,22 @@
                     .then(response => {
                         if (response.ok) {
                             window.alert("File uploaded successfully!");
+                            window.location.reload();
                         }
                         else {
                             window.alert("Error uploading file");
+                            window.location.reload();
                         }
                     })
                     .then(data => {
                         console.log(data);
                         // Handle response from server
+                        hideLoader();
                     })
                     .catch(error => {
                         console.error("Error:", error);
                         window.alert("An error occured. Try again later");
+                        window.location.reload();
                     });
                 });
             </script>
@@ -220,11 +303,32 @@
                 <div class="col-sm-1"></div>
             </div>  
             <script>
+                document.onreadystatechange = function () {
+                    if (document.readyState !== "complete") {
+                        document.querySelector("#loader").style.display = "visible";
+                        document.querySelector("body").style.visibility = "hidden";
+                    } else {
+                        document.querySelector("#loader").style.display = "none";
+                        document.querySelector("body").style.visibility = "visible";
+                    }
+                };
                 document.getElementById("uploadForm5").addEventListener("submit", function(event) {
+                    const loaderDiv = document.getElementById('loader'); 
+
+                    function showLoader() {
+                        loaderDiv.classList.add('show');
+                        document.querySelector("body").style.visibility = "hidden";
+                    }
+
+                    function hideLoader() {
+                        loaderDiv.classList.remove('show');
+                        document.querySelector("body").style.visibility = "visible";
+                    }
                     event.preventDefault();
                     const formData = new FormData();
                     const fileInput = document.getElementById("endpoint5").files[0];
                     formData.append("file", fileInput);
+                    showLoader();
                     fetch("/ntuaflix_api/admin/upload/titlecrew", {
                         method: "POST",
                         body: formData
@@ -232,18 +336,22 @@
                     .then(response => {
                         if (response.ok) {
                             window.confirm("File uploaded successfully!");
+                            window.location.reload();
                         }
                         else {
                             window.alert("Error uploading file");
+                            window.location.reload();
                         }
                     })
                     .then(data => {
                         console.log(data);
                         // Handle response from server
+                        hideLoader();
                     })
                     .catch(error => {
                         console.error("Error:", error);
                         window.alert("An error occured. Try again later");
+                        window.location.reload();
                     });
                 });
             </script>
@@ -256,7 +364,7 @@
                         <p style="font-size:30px;">Upload tsv files with data concerning episodes </p>
                     </div>
                     <div class="row g-0 m-3">
-                        <form id="uploadForm6" action="/ntuaflix_api/admin/upload/titleepidose" method="post" enctype="multipart/form-data">
+                        <form id="uploadForm6" action="/ntuaflix_api/admin/upload/titleepisode" method="post" enctype="multipart/form-data">
                             <div class="upload-form">
                                 <label for="endpoint6" class="form-label"></label>
                                 <input class="form-control custom-file-input" type="file" id="endpoint6">
@@ -270,11 +378,32 @@
                 <div class="col-sm-1"></div>
             </div>
             <script>
+                document.onreadystatechange = function () {
+                    if (document.readyState !== "complete") {
+                        document.querySelector("#loader").style.display = "visible";
+                        document.querySelector("body").style.visibility = "hidden";
+                    } else {
+                        document.querySelector("#loader").style.display = "none";
+                        document.querySelector("body").style.visibility = "visible";
+                    }
+                };
                 document.getElementById("uploadForm6").addEventListener("submit", function(event) {
+                    const loaderDiv = document.getElementById('loader'); 
+
+                    function showLoader() {
+                        loaderDiv.classList.add('show');
+                        document.querySelector("body").style.visibility = "hidden";
+                    }
+
+                    function hideLoader() {
+                        loaderDiv.classList.remove('show');
+                        document.querySelector("body").style.visibility = "visible";
+                    }
                     event.preventDefault();
                     const formData = new FormData();
                     const fileInput = document.getElementById("endpoint6").files[0];
                     formData.append("file", fileInput);
+                    showLoader();
                     fetch("/ntuaflix_api/admin/upload/titleepisode", {
                         method: "POST",
                         body: formData
@@ -282,18 +411,22 @@
                     .then(response => {
                         if (response.ok) {
                             window.confirm("File uploaded successfully!");
+                            window.location.reload();
                         }
                         else {
                             window.alert("Error uploading file");
+                            window.location.reload();
                         }
                     })
                     .then(data => {
                         console.log(data);
                         // Handle response from server
+                        hideLoader();
                     })
                     .catch(error => {
                         console.error("Error:", error);
                         window.alert("An error occured. Try again later");
+                        window.location.reload();
                     });
                 });
             </script>
@@ -306,7 +439,7 @@
                         <p style="font-size:30px;">Upload tsv files with data concerning principals </p>
                     </div>
                     <div class="row g-0 m-3">
-                        <form id="uploadForm7" action="/ntuaflix_api/admin/upload/titleepidose" method="post" enctype="multipart/form-data">
+                        <form id="uploadForm7" action="/ntuaflix_api/admin/upload/titleprincipals" method="post" enctype="multipart/form-data">
                             <div class="upload-form">
                                 <label for="endpoint7" class="form-label"></label>
                                 <input class="form-control custom-file-input" type="file" id="endpoint7">
@@ -321,11 +454,32 @@
                 <div class="col-sm-1"></div>
             </div>
             <script>
+                document.onreadystatechange = function () {
+                    if (document.readyState !== "complete") {
+                        document.querySelector("#loader").style.display = "visible";
+                        document.querySelector("body").style.visibility = "hidden";
+                    } else {
+                        document.querySelector("#loader").style.display = "none";
+                        document.querySelector("body").style.visibility = "visible";
+                    }
+                };
                 document.getElementById("uploadForm7").addEventListener("submit", function(event) {
+                    const loaderDiv = document.getElementById('loader'); 
+
+                    function showLoader() {
+                        loaderDiv.classList.add('show');
+                        document.querySelector("body").style.visibility = "hidden";
+                    }
+
+                    function hideLoader() {
+                        loaderDiv.classList.remove('show');
+                        document.querySelector("body").style.visibility = "visible";
+                    }
                     event.preventDefault();
                     const formData = new FormData();
                     const fileInput = document.getElementById("endpoint7").files[0];
                     formData.append("file", fileInput);
+                    showLoader();
                     fetch("/ntuaflix_api/admin/upload/titleprincipals", {
                         method: "POST",
                         body: formData
@@ -333,18 +487,22 @@
                     .then(response => {
                         if (response.ok) {
                             window.confirm("File uploaded successfully!");
+                            window.location.reload();
                         }
                         else {
                             window.alert("Error uploading file");
+                            window.location.reload();
                         }
                     })
                     .then(data => {
                         console.log(data);
                         // Handle response from server
+                        hideLoader();
                     })
                     .catch(error => {
                         console.error("Error:", error);
                         window.alert("An error occured. Try again later");
+                        window.location.reload();
                     });
                 });
             </script>  
@@ -372,11 +530,32 @@
                 <div class="col-sm-1"></div>
             </div> 
             <script>
+                document.onreadystatechange = function () {
+                    if (document.readyState !== "complete") {
+                        document.querySelector("#loader").style.display = "visible";
+                        document.querySelector("body").style.visibility = "hidden";
+                    } else {
+                        document.querySelector("#loader").style.display = "none";
+                        document.querySelector("body").style.visibility = "visible";
+                    }
+                };
                 document.getElementById("uploadForm8").addEventListener("submit", function(event) {
+                    const loaderDiv = document.getElementById('loader'); 
+
+                    function showLoader() {
+                        loaderDiv.classList.add('show');
+                        document.querySelector("body").style.visibility = "hidden";
+                    }
+
+                    function hideLoader() {
+                        loaderDiv.classList.remove('show');
+                        document.querySelector("body").style.visibility = "visible";
+                    }
                     event.preventDefault();
                     const formData = new FormData();
                     const fileInput = document.getElementById("endpoint8").files[0];
                     formData.append("file", fileInput);
+                    showLoader();
                     fetch("/ntuaflix_api/admin/upload/titleratings", {
                         method: "POST",
                         body: formData
@@ -384,18 +563,22 @@
                     .then(response => {
                         if (response.ok) {
                             window.confirm("File uploaded successfully!");
+                            window.location.reload();
                         }
                         else {
                             window.alert("Error uploading file");
+                            window.location.reload();
                         }
                     })
                     .then(data => {
                         console.log(data);
                         // Handle response from server
+                        hideLoader();
                     })
                     .catch(error => {
                         console.error("Error:", error);
                         window.alert("An error occured. Try again later");
+                        window.location.reload();
                     });
                 });
             </script>

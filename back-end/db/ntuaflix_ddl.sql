@@ -30,6 +30,7 @@ CREATE TABLE `Alt_Title` (
   `Title_AKA` varchar(255) DEFAULT NULL,
   `Region` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`ID`),
+  UNIQUE KEY `unique_combination` (`Title_FK`, `Ordering`),
   FOREIGN KEY (`Title_FK`) REFERENCES `Title` (`ID`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -71,6 +72,7 @@ CREATE TABLE `Participates_In` (
   `Job_Category` varchar(255) DEFAULT NULL,
   `Character` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`ID`),
+  UNIQUE KEY `unique_combination` (`Title_FK`, `Name_FK`, `Ordering`),
   FOREIGN KEY (`Title_FK`) REFERENCES `Title` (`ID`) ON DELETE CASCADE,
   FOREIGN KEY (`Name_FK`) REFERENCES `Person` (`ID`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

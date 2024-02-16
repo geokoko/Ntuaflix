@@ -55,25 +55,31 @@
                     {% if title.IMAGE is not none %}
                         <img class="img-fluid" src="{{ title.IMAGE | replace('{width_variable}', 'w500') }}">
                     {% else %}
-                    <img class="no-image-placeholder" src="{{url_for('static', path='sad-popcorn.png')}}" style="max-width:340px; height:350px;">
-                        <div class="row g-0" style="height:45px; text-align:center; padding:8px; background-color:white;">
-                            <h4 style="color:black; font-weight:800">No Image Available
-                            </h4>
-                        </div>
+                    <div class="container-fluid" style="max-height:300px;">
+                        <img class="img-fluid" src="{{url_for('static', path='sad-popcorn.png')}}">
+                            <div class="row g-0" style="height:45px; text-align:center; padding:8px; background-color:white;">
+                                <h4 style="color:black; font-weight:800">No Image Available
+                                </h4>
+                            </div>
+                    </div>
                     {% endif %}
                 </div>
 
                 <!-- The following column contains all the movie info -->
                 <div class="col-sm-6 mb-3">
                     <div class="row g-0" style="padding-bottom:25px;">
-                        {% if title.Type != 'tvEpisodes' %}
+                        {% if title.Type != 'tvEpisode' %}
                             <h4 class="movie-title">{{ title.Original_Title}}  ({{ title.Start_Year }})</h4>
                         {% else %}
-                            <h4 class="movie-title">{{ title.Original_Title}}  ({{ title.Start_year - title.End_Year }})</h4>
+                            <h4 class="movie-title">{{ title.Original_Title}}  ({{ title.Start_Year }} - {{ title.End_Year }})</h4>
                         {% endif %}
                     </div>
                     <div class="row g-0" style="padding-bottom:25px;">
-                        <h5 class="subtitle">{{ title.Type.capitalize() }}</h5>
+                        {% if title.Type != 'tvEpisode' %}
+                            <h5 class="subtitle">{{ title.Type.capitalize() }}</h5>
+                        {% else %}
+                            <h5 class="subtitle">TV Episode</h5>
+                        {% endif %}
                     </div>
                     <div class="row g-0" style="padding-bottom:25px;">
                         {% if genres %}
@@ -89,7 +95,11 @@
                         <p class="subtext"><b>Director(s): </b>{{ directors | join(', ') }}</p>
                     </div>
                     <div class="row g-0" style="padding-bottom:25px;">
-                        <p class="subtext"><b>Writer(s): </b>{{ writers | join(', ') }}</p>
+                        {% if writers %}
+                            <p class="subtext"><b>Writer(s): </b>{{ writers | join(', ') }}</p>
+                        {% else %}
+                            <p class="subtext"><b>Writer(s):</b> -</p>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -104,7 +114,7 @@
                         </div>
                     </div>
                     <div class="row g-0 text-end" style="padding-top:10px;">
-                        <p class="subtext">{{ title.Votes }}</p>
+                        <p class="subtext">{{ title.Votes }} Votes</p>
                     </div>
                 </div>
 

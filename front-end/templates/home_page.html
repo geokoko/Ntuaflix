@@ -9,19 +9,16 @@
         <link rel="icon" type="image/x-icon" href="{{ url_for('static', path='popcorn-removebg-preview.png') }}">
         <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     </head>
     <body>
-        <!--Loader-->
-        <div class="loader loader-hidden">
-            <p>Loading...This might take some time</p>
-        </div>
         <!-- Navigation -->
         <nav class="navbar navbar-expand-sm justify-content-end fixed-top">
             <div class="container-fluid">
                 <!--This is used to make the navbar collapsible if the screen is too small-->
                 <a class="navbar-brand" href="/ntuaflix_api/html">NTUAflix</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#collapsibleNavbar">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#collapsibleNavbar" href="#">
                     <span class="navbar-toggler-icon"></span>
                 </button>
 
@@ -118,7 +115,6 @@
                     </div>
                 {% endfor %}
             </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
