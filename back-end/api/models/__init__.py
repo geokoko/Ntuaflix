@@ -9,7 +9,7 @@ class nqueryObject(BaseModel):
 
 class gqueryObject(BaseModel):
     qgenre: str
-    minrating: Optional[str] = None
+    minrating: str = None
     yrFrom: Optional[str] = None
     yrTo: Optional[str] = None
 

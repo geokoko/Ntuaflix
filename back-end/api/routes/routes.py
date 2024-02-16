@@ -35,8 +35,8 @@ async def browse_titles_html(request: Request):
 
 # Browse a specific Title (json, csv format)
 @router.get("/title/{titleID}", response_model=TitleObject)
-async def get_title_details(titleID: str, format_type: str = "json"):
-    if format_type not in ["json", "csv"]:
+async def get_title_details(titleID: str, format: str = "json"):
+    if format not in ["json", "csv"]:
         raise HTTPException(status_code=400, detail="Unsupported format specifier")
 
     try:
@@ -92,9 +92,9 @@ async def get_title_details(titleID: str, format_type: str = "json"):
                     rating=RatingObject(avRating=str(title_data["Average_Rating"]), nVotes=str(title_data["Votes"]))
                 )
 
-                if format_type == "json":
+                if format == "json":
                     return title_object
-                elif format_type == "csv":
+                elif format == "csv":
                     title_data = [{
                             'tconst': title_object.titleID,
                             'Type': title_object.type,
@@ -117,7 +117,7 @@ async def get_title_details(titleID: str, format_type: str = "json"):
                     df.to_csv(output, index=False)
                     output.seek(0)
 
-                    return Response(content=output.getvalue(), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=search_results.csv"})
+                    return Response(content=output.getvalue(), media_type="text/plain")
 
                 else:
                     raise HTTPException(status_code=400, detail="Unsupported format specifier")
@@ -231,8 +231,8 @@ async def title_details_html(request: Request, title_id: str):
 
 # Browse a certain person
 @router.get("/name/{nameID}", response_model=NameObject)
-async def get_name_details(nameID: str, format_type: str = "json"):
-    if format_type not in ["json", "csv"]:
+async def get_name_details(nameID: str, format: str = "json"):
+    if format not in ["json", "csv"]:
         raise HTTPException(status_code=400, detail="Unsupported format specifier")
 
     try:
@@ -285,9 +285,9 @@ async def get_name_details(nameID: str, format_type: str = "json"):
                     nameTitles=name_title_objects
                 )
                 
-                if format_type == "json":
+                if format == "json":
                     return name_object
-                elif format_type == "csv":
+                elif format == "csv":
                     name_data = [{
                         'nconst': name_object.nameID,
                         'Name': name_object.name,
@@ -306,7 +306,7 @@ async def get_name_details(nameID: str, format_type: str = "json"):
                     df.to_csv(output, index=False)
                     output.seek(0)
 
-                    return Response(content=output.getvalue(), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=search_results.csv"})
+                    return Response(content=output.getvalue(), media_type="text/plain")
             
                 else:
                     raise HTTPException(status_code=400, detail="Unsupported format specifier")
@@ -361,8 +361,8 @@ async def person_details_html(request: Request, name_id: str):
        
 # Title search query
 @router.get("/searchtitle", response_model=List[TitleObject])
-async def search_titles(query: tqueryObject = Body(...), format_type: str = "json"):
-    if format_type not in ["json", "csv"]:
+async def search_titles(query: tqueryObject = Body(...), format: str = "json"):
+    if format not in ["json", "csv"]:
         raise HTTPException(status_code=400, detail="Unsupported format specifier")
 
     try:
@@ -426,7 +426,7 @@ async def search_titles(query: tqueryObject = Body(...), format_type: str = "jso
 
                     full_titles.append(title_object)
 
-            if format_type == "csv":
+            if format == "csv":
                 titles_data = []
                 for title in full_titles:
                     title_dict = {
@@ -453,9 +453,9 @@ async def search_titles(query: tqueryObject = Body(...), format_type: str = "jso
                 df.to_csv(output, index=False)
                 output.seek(0)
 
-                return Response(content=output.getvalue(), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=search_results.csv"})
+                return Response(content=output.getvalue(), media_type="text/plain")
             
-            elif format_type == "json":
+            elif format == "json":
                 return full_titles
             
             else:
@@ -486,34 +486,40 @@ async def search_movies_html(request: Request, query: str = Query(...)):
 
 # Genre search query
 @router.get("/bygenre", response_model=List[TitleObject])
-async def search_genre(query: gqueryObject = Body(...), format_type: str = "json"):
+async def search_genre(query: gqueryObject = Body(...), format: str = "json"):
     # Validate parameters
-    if format_type not in ["json", "csv"]:
+    if format not in ["json", "csv"]:
         raise HTTPException(status_code=400, detail="Unsupported format specifier")
 
-    if not query.qgenre:
-        raise HTTPException(status_code=400, detail="Genre query must not be empty")
-
+    if not (query.qgenre and query.minrating):
+        raise HTTPException(status_code=400, detail="Genre and Minrating query must not be empty")
+    
     try:
         query.minrating = float(query.minrating)  # assuming minrating should be a number
     except ValueError:
         raise HTTPException(status_code=400, detail="Minimum rating must be a valid number")
 
-    if query.yrFrom is not None:
+    if query.yrFrom is not None and query.yrTo is None:
         try:
             query.yrFrom = int(query.yrFrom)  # assuming yrFrom should be a valid year (integer)
             if query.yrFrom < 0:
                 raise HTTPException(status_code=400, detail="Start year must be a positive integer")
         except ValueError:
             raise HTTPException(status_code=400, detail="Start year must be a valid year")
+        
+        raise HTTPException(status_code=400, detail="YearFrom and YearTo are optional but mutually mandatory if provided")
 
-    if query.yrTo is not None:
+
+    if query.yrTo is not None and query.yrFrom is None:
         try:
             query.yrTo = int(query.yrTo)  # assuming yrTo should be a valid year (integer)
             if query.yrTo < 0:
                 raise HTTPException(status_code=400, detail="End year must be a positive integer")
         except ValueError:
             raise HTTPException(status_code=400, detail="End year must be a valid year")
+        
+        raise HTTPException(status_code=400, detail="YearFrom and YearTo are optional but mutually mandatory if provided")
+    
 
     if query.yrFrom is not None and query.yrTo is not None and query.yrFrom > query.yrTo:
         raise HTTPException(status_code=400, detail="Start year must be less than or equal to end year")
@@ -531,11 +537,9 @@ async def search_genre(query: gqueryObject = Body(...), format_type: str = "json
                 params = [f'%{query.qgenre}%', query.minrating]
 
                 if query.yrFrom is not None and query.yrTo is None:
-                    query_parts.append("AND T.`Start_Year` >= %s")
-                    params.append(query.yrFrom)
+                    raise HTTPException(status_code=400, detail="YearFrom and YearTo are optional but mutually mandatory if provided")
                 if query.yrTo is not None and query.yrFrom is None:
-                    query_parts.append("AND T.`Start_Year` <= %s")
-                    params.append(query.yrTo)
+                    raise HTTPException(status_code=400, detail="YearFrom and YearTo are optional but mutually mandatory if provided")
                 if query.yrTo is not None and query.yrFrom is not None:
                     query_parts.append("AND T. `Start_Year` BETWEEN %s AND %s")
                     params.extend([query.yrFrom, query.yrTo])
@@ -574,7 +578,7 @@ async def search_genre(query: gqueryObject = Body(...), format_type: str = "json
                         titlePoster=title["IMAGE"],
                         startYear=str(title["Start_Year"]),
                         endYear=str(title["End_Year"]) if title["End_Year"] else None,
-                        genres =[{"genre": genre} for genre in title["Genres"].split(',')] if title["Genres"] else [],
+                        genres =[GenreTitle(genreTitle=genre) for genre in title["Genres"].split(',')] if title["Genres"] else [],
                         titleAkas=[AkaTitle(**a) for a in akas_data],
                         principals=[PrincipalsObject(**p) for p in principals_data],
                         rating=RatingObject(avRating=str(title["Average_Rating"]), nVotes=str(title["Votes"]))
@@ -582,7 +586,7 @@ async def search_genre(query: gqueryObject = Body(...), format_type: str = "json
 
                     title_objects.append(title_object)
                 
-                if format_type == "csv":
+                if format == "csv":
                     titles_data = []
                     for title in title_objects:
                         title_dict = {
@@ -609,9 +613,9 @@ async def search_genre(query: gqueryObject = Body(...), format_type: str = "json
                     df.to_csv(output, index=False)
                     output.seek(0)
 
-                    return Response(content=output.getvalue(), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=search_results.csv"})
+                    return Response(content=output.getvalue(), media_type="text/plain")
                 
-                elif format_type == "json":
+                elif format == "json":
                     return title_objects
                 
                 else:
@@ -672,8 +676,8 @@ async def search_movies_html(request: Request, query: str = Query(...)):
 
 # Search by name
 @router.get("/searchname", response_model=List[NameObject])
-async def search_name(query: nqueryObject = Body(...), format_type: str = "json"):
-    if format_type not in ["json", "csv"]:
+async def search_name(query: nqueryObject = Body(...), format: str = "json"):
+    if format not in ["json", "csv"]:
         raise HTTPException(status_code=400, detail="Unsupported format specifier")
 
     try:
@@ -731,9 +735,9 @@ async def search_name(query: nqueryObject = Body(...), format_type: str = "json"
                     
                     result.append(name_object)
                 
-            if format_type == "json":
+            if format == "json":
                 return result
-            elif format_type == "csv":
+            elif format == "csv":
                 name_data = [{
                     'nconst': name_object.nameID,
                     'Name': name_object.name,
@@ -752,7 +756,7 @@ async def search_name(query: nqueryObject = Body(...), format_type: str = "json"
                 df.to_csv(output, index=False)
                 output.seek(0)
 
-                return Response(content=output.getvalue(), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=search_results.csv"})
+                return Response(content=output.getvalue(), media_type="text/plain")
     
     except HTTPException as http_ex:
         raise http_ex

@@ -6,7 +6,6 @@ BASE_URL = "http://127.0.0.1:9876/ntuaflix_api"
 #Using try-catch for error handlind
 def healthcheck():
     try:
-        print("Admin performs heathcheck")
         response = requests.get(f"{BASE_URL}/admin/healthcheck")
         handle_response(response, args.format)
     except requests.exceptions.RequestException as e:
@@ -23,7 +22,6 @@ def resetall():
         print(f"An error occurred: {e}")
 
 
-
 def newtitles(args):
     if not os.path.isfile(args.filename):
         print(f"Error: File '{args.filename}' does not exist.")
@@ -38,7 +36,6 @@ def newtitles(args):
         print(f"An error occurred: {e}")
 
 
-
 def newakas(args):
     if not os.path.isfile(args.filename):
         print(f"Error: File '{args.filename}' does not exist.")
@@ -51,7 +48,6 @@ def newakas(args):
             handle_response(response, args.format)
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
-
 
 
 def newnames(args):
@@ -135,8 +131,10 @@ def title(args):
 
 def searchtitle(args):
     try:
-        params = {"query": args.titlepart}
-        response = requests.get(f"{BASE_URL}/searchtitle", params=params)
+        query = {"titlePart": args.titlepart}
+        headers = {'Content-Type': 'application/json'}
+
+        response = requests.get(f"{BASE_URL}/searchtitle", data=json.dumps(query), headers=headers, params={"format": args.format} )
         handle_response(response, args.format)
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
@@ -146,14 +144,20 @@ def bygenre(args):
     try:
         year_from = str(getattr(args, 'from')) if getattr(args, 'from') is not None else None
         year_to = str(args.to) if args.to is not None else None
+        
+        if year_from is not None and year_to is None:
+            print("--from and --to are optional but mutually mandatory if provided")
+        
+        if year_to is not None and year_from is None:
+            print("--from and -to are optional but mutually mandatory if provided")
 
-    
-        params = {"qgenre": args.genre, "minrating": str(args.min), "yrFrom": year_from, "yrTo": year_to}
-        response = requests.get(f"{BASE_URL}/bygenre", params=params)
+        query = {"qgenre": args.genre, "minrating": args.min, "yrFrom": year_from, "yrTo": year_to}
+        headers = {'Content-Type': 'application/json'}
+
+        response = requests.get(f"{BASE_URL}/bygenre", data=json.dumps(query), headers=headers, params={"format": args.format} )
         handle_response(response, args.format)
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
-
 
 
 def name(args):
@@ -167,8 +171,10 @@ def name(args):
 
 def searchname(args):
     try:
-        params = {"query": args.name}
-        response = requests.get(f"{BASE_URL}/searchname", params=params)
+        query = {"namePart": args.name}
+        headers = {'Content-Type': 'application/json'}
+
+        response = requests.get(f"{BASE_URL}/searchname", data=json.dumps(query), headers=headers, params={"format": args.format} )
         handle_response(response, args.format)
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
@@ -205,7 +211,7 @@ if __name__ == "__main__":
     parser.add_argument("scope", choices=["healthcheck", "resetall", "title", "searchtitle", 
                                           "bygenre", "name", "searchname","newtitles", "newakas", 
                                           "newnames", "newcrew", "newepisode", "newprincipals", "newratings"])
-    parser.add_argument("--filename", help="Specify filename for newprincipals/newratings scope")
+    parser.add_argument("--filename", help="Specify filename for the uploads")
     
     parser.add_argument("--titleID", help="Specify titleID for title scope")
     parser.add_argument("--titlepart", help="Specify titlepart for searchtitle scope")
@@ -282,3 +288,8 @@ if __name__ == "__main__":
             print("Error: --filename is a mandatory parameter for the 'newprincipals' scope.")
         else:
             newprincipals(args)
+    elif args.scope == "newratings":
+        if not args.filename:
+            print("Error: --filename is a mandatory parameter for the 'newratings' scope.")
+        else:
+            newratings(args)
