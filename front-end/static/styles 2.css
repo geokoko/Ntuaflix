@@ -1,0 +1,198 @@
+/*define basic colors*/
+:root{
+    --navbar-background: #38058B;
+    --logo: #E0CFFC;
+    --screen-background: #140330;
+    --card: #E0CFFC;
+}
+/*basic parameters needed in the entire body our pages*/
+body{
+    background-color: var(--screen-background) !important;
+    margin-left: 188px !important; 
+    margin-right: 188px !important;
+}
+
+/*------------------------------------styles concerning the navigation bar---------------------------------------*/
+.navbar{
+    height: 102px !important;
+    background-color: var(--navbar-background);
+}
+
+.navbar .nav-link{
+    color: white;
+    font-family:'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif
+}
+.navbar-nav{
+    margin-right:188px;
+}
+
+.nav-item{
+    font-size: 24px !important;
+    margin-left: 40px;
+}
+
+.navbar-brand{
+    font-family: 'Times New Roman', Times, serif;
+    font-weight: bold;
+    font-size: 48px !important;
+    color: var(--logo) !important;
+    position: absolute;
+    left: 188px;
+}
+/*---------------------------------------------------------------------------------------------------------------*/
+
+/*--------------------------------------------------Text Styles--------------------------------------------------*/
+.h1{
+    font-family:Arial, Helvetica, sans-serif;
+    font-size: 70px !important;
+    font-weight: bold !important;
+    color: white !important;
+    text-align: center;
+}
+
+.h2{
+    font-family:Arial, Helvetica, sans-serif;
+    font-size:52px !important;
+    font-weight:500 !important;
+    color: white !important;
+    text-align: center; 
+}
+
+.title{
+    color:white;
+    font-size:64px;
+}
+
+.movie-title{
+    color: white;
+    font-size: 30px;
+}
+
+.subtitle{
+    color:white;
+    font-weight: bold;
+    font-size:24px;
+}
+
+.subtext{
+    color:white;
+    font-size:21px;
+}
+
+.job{
+    color:white;
+    font-style:italic;
+    font-size:16px;
+}
+
+.has-search .form-control-feedback{
+    position: absolute;
+    display: block;
+    text-align: center;
+    height: 40px;
+    width: 40px;
+    line-height: 50px;
+}
+
+.has-search .form-control{
+    padding-left: 40px;
+    height: 50px;
+    font-size: 24px;
+    border-radius: 90px;
+}
+
+.card-title{
+    color:white !important;
+}
+
+.img-fluid{
+    max-height: 390px;
+    object-fit: cover;
+}
+
+.no-image-placeholder{
+    color:white;
+}
+
+/*-----------------------------------------styles concerning rating object---------------------------------------*/
+.rating {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    background-color: #3a255e; /* Change this to your desired background color */
+    padding-right: 10px;
+    border-radius: 10px; /* Add border-radius for rounded corners */
+}
+
+.rating-value {
+    color: white;    
+    font-size: 21px; /* Change font size as needed */
+    margin-right: 5px; /* Optional margin to separate the rating value and star icon */
+}
+/*---------------------------------------------------------------------------------------------------------------*/
+
+
+
+
+/*--------------------------------------styles concerning the uploads page-------------------------------------*/
+.upload-cover{
+    align-items: center;    
+    justify-content: center;
+    background-color: var(--logo); /* Change this to your desired background color */
+    border-radius: 10px;
+}
+
+.upload-form{
+    align-items:center;
+}
+
+.custom-file-input{
+    color:white !important;
+    background-color: var(--navbar-background) !important;
+    border: 1px solid black !important;
+}
+/*-------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------loader---------------------------------------------------------*/
+.loader{
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: #3a255e; 
+    transition: opacity 0.75s, visibility 0.75s;
+}
+
+.loader-hidden{
+    opacity: 0;
+    visibility: hidden;
+}
+
+.loader::after{
+    content: "";
+    width: 75px;
+    height: 75px;
+    border: 15px solid #dddddd;
+    border-top-color: #7449f5;
+    border-radius: 50%;
+    animation: loading 0.75s ease infinite;
+}
+
+.loader p {
+    color: #ffffff;
+    margin-top: 20px;
+    font-size: 1em; 
+    text-align: center; 
+}
+
+@keyframes loading {
+    from{
+        transform: rotate(0turn);
+    }
+    to{
+        transform: rotate(1turn);
+    }
+}
