@@ -1,11 +1,17 @@
 import requests
+import pandas as pd
+import io
+import os
 
 def test_upload_title_basics():
     # Set the endpoint URL
     endpoint = "http://localhost:9876/ntuaflix_api/admin/upload/titlebasics"
     
-    # Set the file path of the TSV file
-    file_path = "/home/ariadni/Documents/softeng23-42/back-end/db/data/truncated_title.basics.tsv"  # Update with your file path
+    # Get the directory path of the current script
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # Set the file path of the TSV file relative to the current directory
+    file_path = os.path.join(current_dir, "../db/data/truncated_title.basics.tsv")
     
     try:
         # Open and read the TSV file
@@ -29,8 +35,11 @@ def test_upload_title_akas():
     # Set the endpoint URL
     endpoint = "http://localhost:9876/ntuaflix_api/admin/upload/titleakas"
     
-    # Set the file path of the TSV file
-    file_path = "/home/ariadni/Documents/softeng23-42/back-end/db/data/truncated_title.akas.tsv"  # Update with your file path
+    # Get the directory path of the current script
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # Set the file path of the TSV file relative to the current directory
+    file_path = os.path.join(current_dir, "../db/data/truncated_title.akas.tsv")
     
     try:
         # Open and read the TSV file
@@ -54,8 +63,11 @@ def test_upload_name_basics():
     # Set the endpoint URL
     endpoint = "http://localhost:9876/ntuaflix_api/admin/upload/namebasics"
     
-    # Set the file path of the TSV file
-    file_path = "/home/ariadni/Documents/softeng23-42/back-end/db/data/truncated_name.basics.tsv"  # Update with your file path
+    # Get the directory path of the current script
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # Set the file path of the TSV file relative to the current directory
+    file_path = os.path.join(current_dir, "../db/data/truncated_name.basics.tsv")
     
     try:
         # Open and read the TSV file
@@ -79,9 +91,12 @@ def test_upload_title_crew():
     # Set the endpoint URL
     endpoint = "http://localhost:9876/ntuaflix_api/admin/upload/titlecrew"
     
-    # Set the file path of the TSV file
-    file_path = "/home/ariadni/Documents/softeng23-42/back-end/db/data/truncated_title.crew.tsv"  # Update with your file path
+    # Get the directory path of the current script
+    current_dir = os.path.dirname(os.path.abspath(__file__))
     
+    # Set the file path of the TSV file relative to the current directory
+    file_path = os.path.join(current_dir, "../db/data/truncated_title.crew.tsv")
+
     try:
         # Open and read the TSV file
         with open(file_path, 'rb') as file:
@@ -104,9 +119,12 @@ def test_upload_title_episode():
     # Set the endpoint URL
     endpoint = "http://localhost:9876/ntuaflix_api/admin/upload/titleepisode"
     
-    # Set the file path of the TSV file
-    file_path = "/home/ariadni/Documents/softeng23-42/back-end/db/data/truncated_title.episode.tsv"  # Update with your file path
+    # Get the directory path of the current script
+    current_dir = os.path.dirname(os.path.abspath(__file__))
     
+    # Set the file path of the TSV file relative to the current directory
+    file_path = os.path.join(current_dir, "../db/data/truncated_title.episode.tsv")
+
     try:
         # Open and read the TSV file
         with open(file_path, 'rb') as file:
@@ -129,9 +147,12 @@ def test_upload_title_principals():
     # Set the endpoint URL
     endpoint = "http://localhost:9876/ntuaflix_api/admin/upload/titleprincipals"
     
-    # Set the file path of the TSV file
-    file_path = "/home/ariadni/Documents/softeng23-42/back-end/db/data/truncated_title.principals.tsv"  # Update with your file path
+    # Get the directory path of the current script
+    current_dir = os.path.dirname(os.path.abspath(__file__))
     
+    # Set the file path of the TSV file relative to the current directory
+    file_path = os.path.join(current_dir, "../db/data/truncated_title.principals.tsv")
+
     try:
         # Open and read the TSV file
         with open(file_path, 'rb') as file:
@@ -154,9 +175,12 @@ def test_upload_title_ratings():
     # Set the endpoint URL
     endpoint = "http://localhost:9876/ntuaflix_api/admin/upload/titleratings"
     
-    # Set the file path of the TSV file
-    file_path = "/home/ariadni/Documents/softeng23-42/back-end/db/data/truncated_title.ratings.tsv"  # Update with your file path
+    # Get the directory path of the current script
+    current_dir = os.path.dirname(os.path.abspath(__file__))
     
+    # Set the file path of the TSV file relative to the current directory
+    file_path = os.path.join(current_dir, "../db/data/truncated_title.ratings.tsv")
+
     try:
         # Open and read the TSV file
         with open(file_path, 'rb') as file:
@@ -174,7 +198,6 @@ def test_upload_title_ratings():
             
     except Exception as e:
         print(f"An error occurred: {e}")
-
 
 def test_title_endpoint(title_id, format_type):
     url = f"http://localhost:9876/ntuaflix_api/title/{title_id}?format_type={format_type}"
@@ -318,6 +341,7 @@ test_upload_title_principals()
 test_upload_title_ratings()
 
 # Replace the parameters with your desired values for testing
+# Here are some random ones:
 test_title_endpoint("tt0103145", "json")
 test_search_titles("Baby", "csv")
 test_genre_search("Drama", "7.0", "1990", "2000", "json")
