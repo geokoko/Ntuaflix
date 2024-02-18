@@ -2,6 +2,7 @@ import requests
 import pandas as pd
 import io
 import os
+import json 
 
 def test_upload_title_basics():
     # Set the endpoint URL
@@ -229,14 +230,20 @@ def test_title_endpoint(title_id, format_type):
         print(f"Failed to fetch title details. Status Code: {response.status_code}")
         print(response.text)
 
-def test_search_titles(query, format_type):
-    url = f"http://localhost:9876/ntuaflix_api/searchtitle?query={query}&format_type={format_type}"
-    response = requests.get(url)
+def test_search_titles(query, format):
+    url = "http://localhost:9876/ntuaflix_api/searchtitle"
+    headers = {'Content-Type': 'application/json'}
+    data = {"titlePart": query}  # Assuming your query object expects a "titlePart" field
+    params = {"format": format}
+
+    print("Request URL:", url)
+    response = requests.get(url, headers=headers, params=params, data=json.dumps(data))
+
     if response.status_code == 200:
-        if format_type == "json":
+        if format == "json":
             print("Title Objects:")
             print(response.json())
-        elif format_type == "csv":
+        elif format == "csv":
             csv_content = response.text
             if csv_content:
                 print("CSV Content:")
@@ -251,14 +258,17 @@ def test_search_titles(query, format_type):
 
 def test_genre_search(qgenre, minrating, yrFrom=None, yrTo=None, format_type="json"):
     url = "http://localhost:9876/ntuaflix_api/bygenre"
-    params = {
+    headers = {'Content-Type': 'application/json'}
+    data = {
         "qgenre": qgenre,
         "minrating": minrating,
         "yrFrom": yrFrom,
         "yrTo": yrTo,
-        "format_type": format_type
+        "format": format_type
     }
-    response = requests.get(url, params=params)
+
+    print("Request URL:", url)
+    response = requests.get(url, headers=headers, data=json.dumps(data))
 
     if response.status_code == 200:
         if format_type == "json":
@@ -281,11 +291,14 @@ def test_genre_search(qgenre, minrating, yrFrom=None, yrTo=None, format_type="js
 
 def test_search_name(namePart: str, format_type: str = "json"):
     url = "http://localhost:9876/ntuaflix_api/searchname"
-    params = {
-        "query": namePart,
-        "format_type": format_type
+    headers = {'Content-Type': 'application/json'}
+    data = {
+        "namePart": namePart,
+        "format": format_type
     }
-    response = requests.get(url, params=params)
+
+    print("Request URL:", url)
+    response = requests.get(url, headers=headers, data=json.dumps(data))
 
     if response.status_code == 200:
         if format_type == "json":
@@ -343,7 +356,7 @@ test_upload_title_ratings()
 # Replace the parameters with your desired values for testing
 # Here are some random ones:
 test_title_endpoint("tt0103145", "json")
-test_search_titles("Baby", "csv")
-test_genre_search("Drama", "7.0", "1990", "2000", "json")
-test_search_name("Smith", format_type="csv")
+test_search_titles("Baby", "json")
+test_genre_search("Drama", "7.0", "1900", "2010", "csv")
+test_search_name("Smith", format_type="json")
 test_get_name_details("nm9928038", format_type="csv")
