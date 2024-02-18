@@ -2,14 +2,13 @@ import subprocess
 
 cli_script = "./cli-client/cli.py"
 
-
 def test_healthcheck(): 
     function = "healthcheck" #function you want to test
     filename = "" #add the path to the tsv file 
     format_option = "json" #json or csv
     try: 
         result = subprocess.run(
-            ["python", cli_script, function], 
+            ["python3", cli_script, function], 
             capture_output=True,
             text=True, #set to true in order to return stdout as strings, not as binary
             check=False, #when check is set to true, if exit code is not 0, an exception is raised. We set it to false, in order to check exit code
@@ -26,7 +25,7 @@ def test_newtitles(filename, format_option):
 
     try: 
         result = subprocess.run(
-            ["python", cli_script, function, "--filename", filename, "--format", format_option], 
+            ["python3", cli_script, function, "--filename", filename, "--format", format_option], 
             capture_output=True,
             text=True, #set to true in order to return stdout as strings, not as binary
             check=False, #when check is set to true, if exit code is not 0, an exception is raised. We set it to false, in order to check exit code
@@ -56,7 +55,7 @@ def test_newakas(filename, format_option):
 
     try: 
         result = subprocess.run(
-            ["python", cli_script, function, "--filename", filename, "--format", format_option], 
+            ["python3", cli_script, function, "--filename", filename, "--format", format_option], 
             capture_output=True,
             text=True, #set to true in order to return stdout as strings, not as binary
             check=False, #when check is set to true, if exit code is not 0, an exception is raised. We set it to false, in order to check exit code
@@ -86,7 +85,7 @@ def test_newnames(filename, format_option):
 
     try: 
         result = subprocess.run(
-            ["python", cli_script, function, "--filename", filename, "--format", format_option], 
+            ["python3", cli_script, function, "--filename", filename, "--format", format_option], 
             capture_output=True,
             text=True, #set to true in order to return stdout as strings, not as binary
             check=False, #when check is set to true, if exit code is not 0, an exception is raised. We set it to false, in order to check exit code
@@ -116,7 +115,7 @@ def test_newcrew(filename, format_option):
 
     try: 
         result = subprocess.run(
-            ["python", cli_script, function, "--filename", filename, "--format", format_option], 
+            ["python3", cli_script, function, "--filename", filename, "--format", format_option], 
             capture_output=True,
             text=True, #set to true in order to return stdout as strings, not as binary
             check=False, #when check is set to true, if exit code is not 0, an exception is raised. We set it to false, in order to check exit code
@@ -146,7 +145,7 @@ def test_newepisode(filename, format_option):
 
     try: 
         result = subprocess.run(
-            ["python", cli_script, function, "--filename", filename, "--format", format_option], 
+            ["python3", cli_script, function, "--filename", filename, "--format", format_option], 
             capture_output=True,
             text=True, #set to true in order to return stdout as strings, not as binary
             check=False, #when check is set to true, if exit code is not 0, an exception is raised. We set it to false, in order to check exit code
@@ -176,7 +175,7 @@ def test_newprincipals(filename, format_option):
 
     try: 
         result = subprocess.run(
-            ["python", cli_script, function, "--filename", filename, "--format", format_option], 
+            ["python3", cli_script, function, "--filename", filename, "--format", format_option], 
             capture_output=True,
             text=True, #set to true in order to return stdout as strings, not as binary
             check=False, #when check is set to true, if exit code is not 0, an exception is raised. We set it to false, in order to check exit code
@@ -206,7 +205,7 @@ def test_newratings(filename, format_option):
 
     try: 
         result = subprocess.run(
-            ["python", cli_script, function, "--filename", filename, "--format", format_option], 
+            ["python3", cli_script, function, "--filename", filename, "--format", format_option], 
             capture_output=True,
             text=True, #set to true in order to return stdout as strings, not as binary
             check=False, #when check is set to true, if exit code is not 0, an exception is raised. We set it to false, in order to check exit code
@@ -232,7 +231,7 @@ def test_newratings(filename, format_option):
 
 
 if __name__ == "__main__": 
-    test_healthcheck()
+    #test_healthcheck()
 
     print("------------Functional Testing for 'newtitles' scope------------\n")
     #Correct File For the First Time

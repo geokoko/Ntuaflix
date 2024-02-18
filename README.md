@@ -41,7 +41,7 @@ This guide walks you through setting up and running the NTUAflix application usi
     ```
 4. **Nginx Configuration**
 
-    Ensure the `nginx/nginx.conf` file is configured to reverse proxy to your FastAPI application. Here's a simple example that proxies requests to the app service:
+    Ensure the `nginx/nginx.conf` file is configured to reverse proxy to the FastAPI application. Here's a simple example that proxies requests to the app service:
 
     ```nginx
     server {
@@ -58,7 +58,7 @@ This guide walks you through setting up and running the NTUAflix application usi
     ```
 
 5. **Running the application**
-    From the root directory of your project, run:
+    Ensure that no service is listening on localhost at port 3306. Then from the root directory of your project, run:
     ```bash
     sudo docker-compose up --build
     ```
