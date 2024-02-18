@@ -201,6 +201,16 @@ def handle_response(response, format):
         print("Status Code 404: Not Found. The requested resource was not found.")
     elif response.status_code == 500:
         print("Status Code 500: Internal server error.")
+        print("The function returned:")
+        if format == 'json':
+            try:
+                print(response.json())
+            except UnicodeEncodeError:
+                print(response.text.encode('utf-8', errors='ignore').decode('utf-8'))
+        elif format == "csv":
+            print(response.text)
+        else:
+            print("Unsupported format")
     else:
         print(f"Unexpected status code: {response.status_code}")
 

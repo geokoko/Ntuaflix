@@ -139,7 +139,7 @@ async def insert_into_participates_in(values):
                 raise HTTPException(status_code=500, detail="Duplicate entry encountered: Ordering is not NULL")
             await cursor.execute(query, values)
             await connection.commit()
-            print("Insert successful")
+            #print("Insert successful")
         except Exception as e:
             print(f"Error executing query: {e}")
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
