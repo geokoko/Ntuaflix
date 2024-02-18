@@ -11,46 +11,54 @@ This guide walks you through setting up and running the NTUAflix application usi
 
 1. **Clone the Repository**
 
-First, clone this repository to your local machine using:
+    First, clone this repository to your local machine using:
 
-```
-git clone https://github.com/ntua/softeng23-42.git
-```
+    ```bash
+    git clone https://github.com/ntua/softeng23-42.git
+    ```
 
 2. **Environment Variables**
 
-Create a `.env` file in the root directory of the project. This file should contain the necessary environment variables:
+    Create a `.env` file in the root directory of the project. This file should contain the necessary environment variables:
 
-```
-DB_HOST=db
-DB_NAME=mydatabase
-DB_USER=myuser
-DB_PASSWD=mypassword
+    ```.env
+    DB_HOST=db
+    DB_NAME=mydatabase
+    DB_USER=myuser
+    DB_PASSWD=mypassword
+    ```
+    Adjust the values according to your preferences.
 
-```
+3. **Generate the SSL Certificate and Key**
+    Create the following folder:
+    ```bash
+    mkdir -p nginx/certs
+    ```
+    Run the following command in your terminal to generate the SSL certificate (localhost.crt) and key (localhost.key). These commands create a certificate valid for 365 days:
 
-Adjust the values according to your preferences.
+    ```bash
+    openssl req -newkey rsa:2048 -nodes -keyout nginx/certs/localhost.key -x509 -days 365 -out nginx/certs/localhost.crt
+    ```
+4. **Nginx Configuration**
 
-3. **Nginx Configuration**
+    Ensure the `nginx/nginx.conf` file is configured to reverse proxy to your FastAPI application. Here's a simple example that proxies requests to the app service:
 
-Ensure the `nginx/nginx.conf` file is configured to reverse proxy to your FastAPI application. Here's a simple example that proxies requests to the app service:
+    ```nginx
+    server {
+        listen 80;
 
-```nginx
-server {
-    listen 80;
-
-    location / {
-        proxy_pass http://app:9876;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        location / {
+            proxy_pass http://app:9876;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
     }
-}
-```
+    ```
 
-4. **Running the application**
-From the root directory of your project, run:
-```bash
-sudo docker-compose up --build
-```
+5. **Running the application**
+    From the root directory of your project, run:
+    ```bash
+    sudo docker-compose up --build
+    ```
