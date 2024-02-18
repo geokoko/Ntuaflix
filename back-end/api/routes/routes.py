@@ -5,10 +5,10 @@ from typing import List, Optional
 from ..models import TitleObject, NameObject, AkaTitle, PrincipalsObject, RatingObject, GenreTitle, NameTitleObject, tqueryObject, nqueryObject, gqueryObject
 from ..database import get_database_connection, check_connection, create_backup, restore, pick_backup, reset_database
 from ..utils.admin_helpers import insert_into_name, insert_into_profession, insert_into_profession_person, fetch_person_primary_key, check_existing_participation, update_title_ratings, insert_into_episode, insert_into_title, fetch_title_primary_key, insert_into_participates_in, insert_into_participates_in_crew
+from ..utils.custom_responses import get_custom_responses
 import aiomysql
 from typing import Optional, Union
 import pandas as pd
-import requests
 import csv
 import os
 from io import StringIO
@@ -17,6 +17,12 @@ import aiofiles
 router = APIRouter()
 BASE_URL = "/ntuaflix_api"
 templates = Jinja2Templates(directory=os.path.normpath(os.path.join(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, os.pardir, os.pardir), "front-end", "templates")))
+
+@router.get("/")
+async def read_root(request: Request):
+    scheme = request.url.scheme
+    print(scheme)
+    return {"scheme": scheme}
 
 # Index page
 @router.get("/html", response_class=HTMLResponse)
@@ -36,7 +42,7 @@ async def browse_titles_html(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 # Browse a specific Title (json, csv format)
-@router.get("/title/{titleID}", response_model=TitleObject)
+@router.get("/title/{titleID}", response_model=TitleObject, responses=get_custom_responses())
 async def get_title_details(titleID: str, format: str = "json"):
     if format not in ["json", "csv"]:
         raise HTTPException(status_code=400, detail="Unsupported format specifier")
@@ -131,7 +137,7 @@ async def get_title_details(titleID: str, format: str = "json"):
         raise HTTPException(status_code=500, detail=str(e))
     
 # Browse a certain title (html)
-@router.get("/title_html/{title_id}", response_class=HTMLResponse)
+@router.get("/title_html/{title_id}", response_class=HTMLResponse, responses = get_custom_responses())
 async def title_details_html(request: Request, title_id: str):
     try:
         async with await get_database_connection() as db_connection:
@@ -232,7 +238,7 @@ async def title_details_html(request: Request, title_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 # Browse a certain person
-@router.get("/name/{nameID}", response_model=NameObject)
+@router.get("/name/{nameID}", response_model=NameObject, responses=get_custom_responses())
 async def get_name_details(nameID: str, format: str = "json"):
     if format not in ["json", "csv"]:
         raise HTTPException(status_code=400, detail="Unsupported format specifier")
@@ -320,7 +326,7 @@ async def get_name_details(nameID: str, format: str = "json"):
         raise HTTPException(status_code=500, detail=str(e))
 
 # Endpoint for viewing person details in HTML 
-@router.get("/person_html/{name_id}", response_class=HTMLResponse)
+@router.get("/person_html/{name_id}", response_class=HTMLResponse, responses=get_custom_responses())
 async def person_details_html(request: Request, name_id: str):
     try:
         async with await get_database_connection() as db_connection:
@@ -362,7 +368,7 @@ async def person_details_html(request: Request, name_id: str):
         raise HTTPException(status_code=500, detail=str(e))
        
 # Title search query
-@router.get("/searchtitle", response_model=List[TitleObject])
+@router.get("/searchtitle", response_model=List[TitleObject], responses=get_custom_responses())
 async def search_titles(query: tqueryObject = Body(...), format: str = "json"):
     if format not in ["json", "csv"]:
         raise HTTPException(status_code=400, detail="Unsupported format specifier")
@@ -470,7 +476,7 @@ async def search_titles(query: tqueryObject = Body(...), format: str = "json"):
         raise HTTPException(status_code=500, detail=str(e))
 
 #Title Search Bar Endpoint    
-@router.get("/search_titles", response_class=HTMLResponse)
+@router.get("/search_titles", response_class=HTMLResponse, responses=get_custom_responses())
 async def search_movies_html(request: Request, query: str = Query(...)):
     try:
         async with await get_database_connection() as db_connection:
@@ -631,7 +637,7 @@ async def search_genre(query: gqueryObject = Body(...), format: str = "json"):
 
 
 #Genre, Rating, Production Year Endpoint 
-@router.get("/search_genre_rating_pyear", response_class=HTMLResponse)
+@router.get("/search_genre_rating_pyear", response_class=HTMLResponse, responses=get_custom_responses())
 async def search_movies_html(request: Request, query: str = Query(...)):
     try:
         async with await get_database_connection() as db_connection:
@@ -677,7 +683,7 @@ async def search_movies_html(request: Request, query: str = Query(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 # Search by name
-@router.get("/searchname", response_model=List[NameObject])
+@router.get("/searchname", response_model=List[NameObject], responses=get_custom_responses())
 async def search_name(query: nqueryObject = Body(...), format: str = "json"):
     if format not in ["json", "csv"]:
         raise HTTPException(status_code=400, detail="Unsupported format specifier")
@@ -767,7 +773,7 @@ async def search_name(query: nqueryObject = Body(...), format: str = "json"):
         raise HTTPException(status_code=500, detail=str(e))
 
 #First, Last Name Search Bar Endpoint
-@router.get("/search_name", response_class=HTMLResponse)
+@router.get("/search_name", response_class=HTMLResponse, responses=get_custom_responses())
 async def search_name(request: Request, query: str = Query(...)):
     try:
         async with await get_database_connection() as db_connection:

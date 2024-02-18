@@ -11,7 +11,10 @@ import subprocess
 from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi import HTTPException, status
 
-load_dotenv()
+current_script_path = os.path.abspath(__file__)
+project_root_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_script_path))))
+dotenv_path = os.path.join(project_root_path, '.env')
+load_dotenv(dotenv_path=dotenv_path)
 
 db_pool = None
 BACKUP_DIR = os.path.join(Path(__file__).resolve().parent.parent.parent, 'db' , 'backups')
@@ -70,7 +73,7 @@ async def restore():
         raise HTTPException(status_code=404, detail="No backup files available")
     
     choices["available_backups"].sort()
-    backup_file = choices["available_backups"][0]
+    backup_file = choices["available_backups"][-1]
 
     print(backup_file)
 
@@ -119,7 +122,7 @@ async def create_db_pool():
             db=os.environ.get('DB_NAME'), 
             user=os.environ.get('DB_USER'),
             password=os.environ.get('DB_PASSWD'),
-            unix_socket=('/Applications/XAMPP/xamppfiles/var/mysql/mysql.sock'),
+            #unix_socket=('/Applications/XAMPP/xamppfiles/var/mysql/mysql.sock'),
             minsize=5,
             maxsize=10
         )

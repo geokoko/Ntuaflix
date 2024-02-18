@@ -7,7 +7,10 @@ import platform
 from subprocess import call
 import time
 
-load_dotenv()
+current_script_path = os.path.abspath(__file__)
+project_root_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_script_path))))
+dotenv_path = os.path.join(project_root_path, '.env')
+load_dotenv(dotenv_path=dotenv_path)
 
 host = os.environ.get('DB_HOST')
 user = os.environ.get('DB_USER')
@@ -389,3 +392,5 @@ if not res:
     populate_database()
 else:
     print("Database already initialized")
+
+connection.close()

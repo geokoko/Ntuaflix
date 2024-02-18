@@ -1,13 +1,5 @@
 # CLI client
 
-Ενδεικτικά περιεχόμενα:
-
-- Command line interface (CLI).
-- CLI functional tests.
-- CLI unit tests.
-
-------
-
 To recognize the "se2342" file as executable, we need to run the following command while already in the path ./cli-client:
 
 `chmod +x se2342`

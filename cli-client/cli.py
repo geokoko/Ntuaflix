@@ -12,12 +12,10 @@ def healthcheck(args):
         print(f"An error occurred: {e}")
 
 
-#Not tested yet
-def resetall(format: str = 'json'):
+def resetall(args):
     try:
-       #print("Admin performs a total reset")
-        response = requests.post(f"{BASE_URL}/admin/resetall", params={'format': format})
-        handle_response(response, format)
+        response = requests.post(f"{BASE_URL}/admin/resetall", params={'format': args.format})
+        handle_response(response, args.format)
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
 
@@ -240,8 +238,9 @@ if __name__ == "__main__":
 
     if args.scope == "healthcheck":
         healthcheck(args)
+        healthcheck(args)
     elif args.scope == "resetall":
-        resetall(args.format)
+        resetall(args)
     elif args.scope == "name":
         if not args.nameid:
             print("Error: --nameid is a mandatory parameter for the 'name' scope.")

@@ -1,11 +1,14 @@
 .env
+.azure/
 .DS_Store
 back-end/db/data/data_processing.ipynb
 __pycache__/
 *.pyc
 back-end/myenv/
 back-end/db/backups/
-Dockerfile
-docker-compose.yml
 data/
-.dockerignore
+docker/
+# ignore entries for SSL/TLS certificates and keys
+*.key
+*.crt
+*.pem
