@@ -9,7 +9,10 @@ from fastapi import HTTPException
 from sys import platform
 import subprocess
 
-load_dotenv()
+current_script_path = os.path.abspath(__file__)
+project_root_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_script_path))))
+dotenv_path = os.path.join(project_root_path, '.env')
+load_dotenv(dotenv_path=dotenv_path)
 
 db_pool = None
 BACKUP_DIR = os.path.join(Path(__file__).resolve().parent.parent.parent, 'db' , 'backups')

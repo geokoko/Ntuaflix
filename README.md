@@ -1,8 +1,11 @@
 # SoftEng-template
 
-To run the app, install the correct dependencies from the back-end directory:
+To run the app, install Docker, setup nginx, and add ssl keys
+
+then:
+
 ```bash
-pip install -r requirements.txt
+sudo docker-compose up --build
 ```
 
 Verify installation with:
