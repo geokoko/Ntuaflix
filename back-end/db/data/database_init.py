@@ -389,3 +389,5 @@ if not res:
     populate_database()
 else:
     print("Database already initialized")
+
+connection.close()

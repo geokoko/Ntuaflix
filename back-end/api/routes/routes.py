@@ -8,7 +8,6 @@ from ..utils.admin_helpers import insert_into_name, insert_into_profession, inse
 import aiomysql
 from typing import Optional, Union
 import pandas as pd
-import requests
 import csv
 import os
 from io import StringIO
@@ -17,6 +16,12 @@ import aiofiles
 router = APIRouter()
 BASE_URL = "/ntuaflix_api"
 templates = Jinja2Templates(directory=os.path.normpath(os.path.join(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, os.pardir, os.pardir), "front-end", "templates")))
+
+@router.get("/")
+async def read_root(request: Request):
+    scheme = request.url.scheme
+    print(scheme)
+    return {"scheme": scheme}
 
 # Index page
 @router.get("/html", response_class=HTMLResponse)

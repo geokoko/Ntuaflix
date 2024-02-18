@@ -1,4 +1,6 @@
 import requests
+import pandas as pd
+import io
 
 def test_upload_title_basics():
     # Set the endpoint URL
