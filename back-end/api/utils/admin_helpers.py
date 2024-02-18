@@ -6,7 +6,16 @@ async def insert_into_name(values):
     # Replace '\\N' with None for nullable columns
     values = [None if (val == '\\N' or val == '/N') else val for val in values]
 
-    query = "INSERT INTO Person (Name_ID, Name, Image, Birth_Year, Death_Year) VALUES (%s, %s, %s, %s, %s)"
+    query = """
+        INSERT INTO `Person` (Name_ID, Name, Image, Birth_Year, Death_Year) 
+        VALUES (%s, %s, %s, %s, %s)
+        ON DUPLICATE KEY UPDATE
+        Name = VALUES(Name),
+        Image = VALUES(Image),
+        Birth_Year = VALUES(Birth_Year),
+        Death_Year = VALUES(Death_Year)
+    """
+
     async with await get_database_connection() as connection, connection.cursor() as cursor:
         try:
             await cursor.execute(query, values)
@@ -32,7 +41,12 @@ async def insert_into_profession(values):
         
         else:
             # If the profession doesn't exist, insert it into the 'Profession' table
-            query_insert = "INSERT INTO `Profession` (Profession) VALUES (%s)"
+            query_insert = """
+                INSERT INTO `Profession` (Profession) 
+                VALUES (%s)
+                ON DUPLICATE KEY UPDATE
+                Profession = VALUES(Profession)
+            """
             await cursor.execute(query_insert, (profession_name,))
             await connection.commit()
             print("Insert into 'Profession' successful")
@@ -44,7 +58,14 @@ async def insert_into_profession(values):
 async def insert_into_profession_person(values):
     values = [None if (val == '\\N' or val == '/N') else val for val in values]
     
-    query = "INSERT INTO `Profession_Person` (Profession_FK, Name_FK) VALUES (%s, %s)"
+    query = """
+        INSERT INTO `Profession_Person` (Profession_FK, Name_FK) 
+        VALUES (%s, %s)
+        ON DUPLICATE KEY UPDATE
+        Profession_FK = VALUES(Profession_FK),
+        Name_FK = VALUES(Name_FK)
+    """
+
     async with await get_database_connection() as connection, connection.cursor() as cursor:
 
         try:
@@ -79,7 +100,14 @@ async def check_existing_participation(name_fk, title_fk, job_category):
 async def insert_into_title(values):
 
     query_select = "SELECT * FROM `Title` WHERE Title_ID = %s"
-    query_insert = "INSERT INTO `Title` (Title_ID, Original_Title,Type) VALUES (%s, %s, %s)"
+    query_insert = """
+        INSERT INTO `Title` (Title_ID, Original_Title, Type) 
+        VALUES (%s, %s, %s)
+        ON DUPLICATE KEY UPDATE
+        Original_Title = VALUES(Original_Title),
+        Type = VALUES(Type)
+    """
+
     async with await get_database_connection() as connection, connection.cursor() as cursor:
     
         # Start a transaction
@@ -107,7 +135,16 @@ async def insert_into_title(values):
 
 
 async def insert_into_episode(values):
-    query = "INSERT INTO `Episode` (Title_FK, Parent_Title_FK, Season, Episode_Num) VALUES (%s, %s, %s, %s)"
+    query = """
+        INSERT INTO `Episode` (Title_FK, Parent_Title_FK, Season, Episode_Num) 
+        VALUES (%s, %s, %s, %s)
+        ON DUPLICATE KEY UPDATE
+        Title_FK = VALUES(Title_FK),
+        Parent_Title_FK = VALUES(Parent_Title_FK),
+        Season = VALUES(Season),
+        Episode_Num = VALUES(Episode_Num)
+    """
+
     async with await get_database_connection() as connection, connection.cursor() as cursor:
         try:
             values = [None if (v == '\\N' or v == '/N') else v for v in values]
@@ -123,20 +160,24 @@ async def insert_into_participates_in(values):
     query = """
         INSERT INTO `Participates_In` (Title_FK, Name_FK, Ordering, Job_Category, `Character`) 
         VALUES (%s, %s, %s, %s, %s)
-        ON DUPLICATE KEY UPDATE 
-        Ordering = IF(Ordering IS NULL, VALUES(Ordering), Ordering),
-        `Character` = IF(`Character` IS NULL, VALUES(`Character`), `Character`)
+        ON DUPLICATE KEY UPDATE
+        Title_FK = VALUES(Title_FK),
+        Name_FK = VALUES(Name_FK),
+        Ordering = VALUES(Ordering),
+        Job_Category = VALUES(Job_Category),
+        `Character` = VALUES(`Character`)
     """
-    check_query = """
-        SELECT Ordering FROM `Participates_In` WHERE Title_FK = %s AND Name_FK = %s AND Job_Category = %s
-    """
+
+    #check_query = """
+        #SELECT Ordering FROM `Participates_In` WHERE Title_FK = %s AND Name_FK = %s AND Job_Category = %s
+    #"""
     async with await get_database_connection() as connection, connection.cursor() as cursor:
         try:
             values = [None if (v == '\\N' or v == '/N') else v for v in values]
-            await cursor.execute(check_query, (values[0], values[1], values[3]))
-            result = await cursor.fetchone()
-            if result is not None and result[0] is not None:
-                raise HTTPException(status_code=500, detail="Duplicate entry encountered: Ordering is not NULL")
+            #await cursor.execute(check_query, (values[0], values[1], values[3]))
+            #result = await cursor.fetchone()
+            #if result is not None and result[0] is not None:
+                #raise HTTPException(status_code=500, detail="Duplicate entry encountered: Ordering is not NULL")
             await cursor.execute(query, values)
             await connection.commit()
             #print("Insert successful")
@@ -180,7 +221,15 @@ async def update_title_ratings(title_id, average_rating, num_votes):
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
 
 async def insert_into_participates_in_crew(values):
-    query = "INSERT INTO `Participates_In` (Title_FK, Name_FK, Ordering, Job_Category, `Character`) VALUES (%s, %s, %s, %s, %s)"
+    query = """
+        INSERT INTO `Participates_In` (Title_FK, Name_FK, Job_Category) 
+        VALUES (%s, %s, %s)
+        ON DUPLICATE KEY UPDATE
+        Title_FK = VALUES(Title_FK),
+        Name_FK = VALUES(Name_FK),
+        Job_Category = VALUES(Job_Category)
+    """
+
     async with await get_database_connection() as connection, connection.cursor() as cursor:
         try:
             values = [None if (v == '\\N' or v == '/N') else v for v in values]

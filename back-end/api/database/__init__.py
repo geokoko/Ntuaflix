@@ -8,6 +8,8 @@ import re
 from fastapi import HTTPException
 from sys import platform
 import subprocess
+from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi import HTTPException, status
 
 load_dotenv()
 
@@ -88,15 +90,26 @@ async def restore():
     except Exception as e:
         return {"status": "failed", "error": str(e)}
 
-async def check_connection():
+async def check_connection(format: str = 'json'):
     try:
         async with await get_database_connection() as conn:
             async with conn.cursor() as cursor:
                 await cursor.execute("SELECT 1;")
                 await cursor.fetchone()
-        return {"status": "OK", "dataconnection": "Connection to database is OK."}
+        data = {"status": "OK", "dataconnection": "Connection to database is OK."}
+        if format == 'csv':
+            csv_data = ','.join(map(str, data.values()))
+            return PlainTextResponse(f"{csv_data}\n", status_code=status.HTTP_200_OK)
+        else:  # Default to JSON
+            return JSONResponse(data, status_code=status.HTTP_200_OK)
+
     except Exception as e:
-        return {"status": "failed", "dataconnection": str(e)}
+        data = {"status": "failed", "dataconnection": str(e)}
+        if format == 'csv':
+            csv_data = ','.join(map(str, data.values()))
+            return PlainTextResponse(f"{csv_data}\n", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        else:  # Default to JSON
+            return JSONResponse(data, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 async def create_db_pool():
     global db_pool

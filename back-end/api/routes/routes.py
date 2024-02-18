@@ -13,7 +13,6 @@ import csv
 import os
 from io import StringIO
 import aiofiles
-from pymysql.err import IntegrityError
 
 router = APIRouter()
 BASE_URL = "/ntuaflix_api"
@@ -810,12 +809,29 @@ async def uploads_html(request: Request):
     
 # Admin healthcheck
 @router.get("/admin/healthcheck")
-async def admin_health_check():
+async def admin_health_check(format: str = 'json'):
     try:
-        return await check_connection()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        async with await get_database_connection() as conn:
+            async with conn.cursor() as cursor:
+                await cursor.execute("SELECT 1;")
+                await cursor.fetchone()
+        data = {"status": "OK", "dataconnection": "Connection to database is OK."}
+        if format == 'csv':
+            csv_data = ','.join(map(str, data.values()))
+            csv_header = ','.join(data.keys())
+            return PlainTextResponse(f"{csv_header}\n{csv_data}\n", status_code=status.HTTP_200_OK)
+        else:  # Default to JSON
+            return JSONResponse(data, status_code=status.HTTP_200_OK)
 
+    except Exception as e:
+        data = {"status": "failed", "dataconnection": str(e)}
+        if format == 'csv':
+            csv_data = ','.join(map(str, data.values()))
+            csv_header = ','.join(data.keys())
+            return PlainTextResponse(f"{csv_header}\n{csv_data}\n", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        else:  # Default to JSON
+            return JSONResponse(data, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
 # Admin create backup
 @router.post("/admin/backup")
 async def initiate_backup():
@@ -859,6 +875,7 @@ async def initiate_reset(format: str = 'json'):
             
             # Upload Titles
             titles = os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_title.basics.tsv')
+            print(titles)
             async with aiofiles.open(titles, mode='rb') as file:
                 response = await upload_title_basics(titles)
                 if isinstance(response, JSONResponse):
@@ -1018,6 +1035,14 @@ async def upload_title_basics(file: Union[UploadFile, str], format: str = 'json'
                 query_title = """
                     INSERT INTO `Title` (Title_ID, Type, Original_Title, IMAGE, Start_Year, End_Year, Runtime, isAdult)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    ON DUPLICATE KEY UPDATE
+                    Type = VALUES(Type),
+                    Original_Title = VALUES(Original_Title),
+                    IMAGE = VALUES(IMAGE),
+                    Start_Year = VALUES(Start_Year),
+                    End_Year = VALUES(End_Year),
+                    Runtime = VALUES(Runtime),
+                    isAdult = VALUES(isAdult)
                 """
 
                 await cursor.execute(query_title, (tconst, title_type, original_title, image_url,
@@ -1033,7 +1058,11 @@ async def upload_title_basics(file: Union[UploadFile, str], format: str = 'json'
 
                         if not result_genre:
                             # If the genre doesn't exist, insert it into the 'Genre' table
-                            query_insert_genre = "INSERT INTO `Genre` (Genre) VALUES (%s)"
+                            query_insert_genre = """
+                                INSERT INTO `Genre` (Genre) VALUES (%s)
+                                ON DUPLICATE KEY UPDATE
+                                Genre = VALUES(Genre)
+                            """
                             await cursor.execute(query_insert_genre, (genre,))
                             await connection.commit()
                             # Fetch the primary key of the newly inserted genre
@@ -1053,7 +1082,12 @@ async def upload_title_basics(file: Union[UploadFile, str], format: str = 'json'
                             if title_fk:
                                 title_fk = title_fk[0]
                                 # Insert data into the 'Title_Genre' table
-                                query_title_genre = "INSERT INTO `Title_Genre` (Title_FK, Genre_FK) VALUES (%s, %s)"
+                                query_title_genre = """
+                                    INSERT INTO `Title_Genre` (Title_FK, Genre_FK) VALUES (%s, %s)
+                                    ON DUPLICATE KEY UPDATE
+                                    Title_FK = VALUES(Title_FK),
+                                    Genre_FK = VALUES(Genre_FK)
+                                """
                                 await cursor.execute(query_title_genre, (title_fk, genre_fk))
                                 await connection.commit()
 
@@ -1110,7 +1144,15 @@ async def upload_title_akas(file: Union[UploadFile, str], format: str = 'json'):
                         raise ValueError(f"Title with Title_ID {title_id} doesn't exist in the database.")
 
                     # Insert data into the 'Alt_Title' table
-                    query_insert_alt_title = "INSERT INTO `Alt_Title` (Title_FK, Ordering, Title_AKA, Region) VALUES (%s, %s, %s, %s)"
+                    query_insert_alt_title = """
+                        INSERT INTO `Alt_Title` (Title_FK, Ordering, Title_AKA, Region) 
+                        VALUES (%s, %s, %s, %s)
+                        ON DUPLICATE KEY UPDATE
+                        Title_FK = VALUES(Title_FK),
+                        Ordering = VALUES(Ordering),
+                        Title_AKA = VALUES(Title_AKA),
+                        Region = VALUES(Region)
+                    """
                     await cursor.execute(query_insert_alt_title, (title_fk, ordering, title_aka, region))
                     await connection.commit()
                     
@@ -1208,29 +1250,30 @@ async def upload_title_crew(file: Union[UploadFile, str], format: str = 'json'):
             # Process directors
             for director_id in directors:
                 try:
+                    # Check if the title_id exists in the 'Title' table
+                    title_fk = await fetch_title_primary_key(title_id)
+                    if title_fk is None:
+                        errors.append(f"Title with Title_ID {title_id} doesn't exist in the database.")
+                        raise HTTPException(status_code=500, detail=f"Title with Title_ID {title_id} doesn't exist in the database.")
+                    
                     # Check if the director's name_id exists in the 'Name' table
                     director_name_fk = await fetch_person_primary_key(director_id)
                     if director_name_fk is None:
                         print(f"Person with Name_ID {director_id} doesn't exist in the database. Skip insertion")
                         continue
 
-                    # Check if the title_id exists in the 'Title' table
-                    title_fk = await fetch_title_primary_key(title_id)
-                    if title_fk is None:
-                        raise ValueError(f"Title with Title_ID {title_id} doesn't exist in the database.")
-
                     # Check if the entry already exists in the 'Participates_In' table
-                    existing_director_entry = await check_existing_participation(director_name_fk, title_fk, 'director')
-                    if existing_director_entry:
-                        print("Entry already exists, skip insertion")
+                    #existing_director_entry = await check_existing_participation(director_name_fk, title_fk, 'director')
+                    #if existing_director_entry:
+                        #print("Entry already exists, skip insertion")
                         # Entry already exists, skip insertion
-                        continue
+                        #continue
 
                     # Insert data into the 'Participates_In' table for directors
-                    await insert_into_participates_in_crew((title_fk, director_name_fk, None, 'director', None))
+                    await insert_into_participates_in_crew((title_fk, director_name_fk, 'director'))
                 except Exception as e:
                     errors.append(str(e))
-                    continue
+                    
 
             # Process writers
             for writer_id in writers:
@@ -1244,20 +1287,21 @@ async def upload_title_crew(file: Union[UploadFile, str], format: str = 'json'):
                     # Check if the title_id exists in the 'Title' table
                     title_fk = await fetch_title_primary_key(title_id)
                     if title_fk is None:
-                        raise ValueError(f"Title with Title_ID {title_id} doesn't exist in the database.")
+                        errors.append(f"Title with Title_ID {title_id} doesn't exist in the database.")
+                        raise HTTPException(status_code=500, detail=f"Title with Title_ID {title_id} doesn't exist in the database.")
 
                     # Check if the entry already exists in the 'Participates_In' table
-                    existing_writer_entry = await check_existing_participation(writer_name_fk, title_fk, 'writer')
-                    if existing_writer_entry:
-                        print("Entry already exists, skip insertion")
+                    #existing_writer_entry = await check_existing_participation(writer_name_fk, title_fk, 'writer')
+                    #if existing_writer_entry:
+                        #print("Entry already exists, skip insertion")
                         # Entry already exists, skip insertion
-                        continue
+                        #continue
 
                     # Insert data into the 'Participates_In' table for writers
-                    await insert_into_participates_in_crew((title_fk, writer_name_fk, None, 'writer', None))
+                    await insert_into_participates_in_crew((title_fk, writer_name_fk, 'writer'))
                 except Exception as e:
                     errors.append(str(e))
-                    continue
+                    
 
         if errors:
             # If there are errors, raise an HTTPException with the collected error messages
@@ -1273,6 +1317,12 @@ async def upload_title_crew(file: Union[UploadFile, str], format: str = 'json'):
             return JSONResponse({"status": "OK", "message": "File uploaded and data stored successfully"}, status_code=status.HTTP_200_OK)
 
     except Exception as e:
+        if "Title with Title_ID" in str(e) and "doesn't exist in the database." in str(e):
+            error_message = "A title does not exist"
+            if format == 'csv':
+                return PlainTextResponse(f"status, reason\nfailed, {error_message}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            else:  # Default to JSON
+                return JSONResponse({"status": "failed", "reason": error_message}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
         if format == 'csv':
             return PlainTextResponse(f"status, reason\nfailed, {str(e)}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:  # Default to JSON
@@ -1409,7 +1459,6 @@ async def upload_title_ratings(file: Union[UploadFile, str], format: str = 'json
         # Check if the uploaded file is of the correct format
         #if not file.filename.endswith(".tsv"):
             #raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uploaded file must be in TSV format")
-        print("Endpoint 8")
         if isinstance(file, str):
             with open(file, 'r') as f:
                 df = pd.read_csv(f, sep='\t', low_memory=False)

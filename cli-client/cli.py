@@ -4,9 +4,9 @@ BASE_URL = "http://127.0.0.1:9876/ntuaflix_api"
 
 
 #Using try-catch for error handlind
-def healthcheck():
+def healthcheck(args):
     try:
-        response = requests.get(f"{BASE_URL}/admin/healthcheck")
+        response = requests.get(f"{BASE_URL}/admin/healthcheck", params={'format': args.format})
         handle_response(response, args.format)
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
@@ -239,7 +239,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.scope == "healthcheck":
-        healthcheck()
+        healthcheck(args)
     elif args.scope == "resetall":
         resetall(args.format)
     elif args.scope == "name":
