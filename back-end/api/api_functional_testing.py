@@ -201,8 +201,8 @@ def test_upload_title_ratings():
         print(f"An error occurred: {e}")
 
 def test_title_endpoint(title_id, format_type):
-    url = f"https://0.0.0.0:9876/ntuaflix_api/title/{title_id}?format_type={format_type}"
-    response = requests.get(url, verify = False)
+    url = f"http://localhost:9876/ntuaflix_api/title/{title_id}?format_type={format_type}"
+    response = requests.get(url)
     
     if response.status_code == 200:
         if format_type == "json":
