@@ -6,7 +6,7 @@ import json
 
 def test_upload_title_basics():
     # Set the endpoint URL
-    endpoint = "http://localhost:9876/ntuaflix_api/admin/upload/titlebasics"
+    endpoint = "https://0.0.0.0:9876/ntuaflix_api/admin/upload/titlebasics"
     
     # Get the directory path of the current script
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -34,7 +34,7 @@ def test_upload_title_basics():
 
 def test_upload_title_akas():
     # Set the endpoint URL
-    endpoint = "http://localhost:9876/ntuaflix_api/admin/upload/titleakas"
+    endpoint = "https://0.0.0.0:9876/ntuaflix_api/admin/upload/titleakas"
     
     # Get the directory path of the current script
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -62,7 +62,7 @@ def test_upload_title_akas():
 
 def test_upload_name_basics():
     # Set the endpoint URL
-    endpoint = "http://localhost:9876/ntuaflix_api/admin/upload/namebasics"
+    endpoint = "https://0.0.0.0:9876/ntuaflix_api/admin/upload/namebasics"
     
     # Get the directory path of the current script
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -90,7 +90,7 @@ def test_upload_name_basics():
 
 def test_upload_title_crew():
     # Set the endpoint URL
-    endpoint = "http://localhost:9876/ntuaflix_api/admin/upload/titlecrew"
+    endpoint = "https://0.0.0.0:9876/ntuaflix_api/admin/upload/titlecrew"
     
     # Get the directory path of the current script
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -118,7 +118,7 @@ def test_upload_title_crew():
 
 def test_upload_title_episode():
     # Set the endpoint URL
-    endpoint = "http://localhost:9876/ntuaflix_api/admin/upload/titleepisode"
+    endpoint = "https://0.0.0.0:9876/ntuaflix_api/admin/upload/titleepisode"
     
     # Get the directory path of the current script
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -146,7 +146,7 @@ def test_upload_title_episode():
 
 def test_upload_title_principals():
     # Set the endpoint URL
-    endpoint = "http://localhost:9876/ntuaflix_api/admin/upload/titleprincipals"
+    endpoint = "https://0.0.0.0:9876/ntuaflix_api/admin/upload/titleprincipals"
     
     # Get the directory path of the current script
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -174,7 +174,7 @@ def test_upload_title_principals():
 
 def test_upload_title_ratings():
     # Set the endpoint URL
-    endpoint = "http://localhost:9876/ntuaflix_api/admin/upload/titleratings"
+    endpoint = "https://0.0.0.0:9876/ntuaflix_api/admin/upload/titleratings"
     
     # Get the directory path of the current script
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -201,7 +201,7 @@ def test_upload_title_ratings():
         print(f"An error occurred: {e}")
 
 def test_title_endpoint(title_id, format_type):
-    url = f"http://localhost:9876/ntuaflix_api/title/{title_id}?format_type={format_type}"
+    url = f"https://0.0.0.0:9876/ntuaflix_api/title/{title_id}?format_type={format_type}"
     response = requests.get(url)
     
     if response.status_code == 200:
@@ -231,7 +231,7 @@ def test_title_endpoint(title_id, format_type):
         print(response.text)
 
 def test_search_titles(query, format):
-    url = "http://localhost:9876/ntuaflix_api/searchtitle"
+    url = "https://0.0.0.0:9876/ntuaflix_api/searchtitle"
     headers = {'Content-Type': 'application/json'}
     data = {"titlePart": query}  # Assuming your query object expects a "titlePart" field
     params = {"format": format}
@@ -257,7 +257,7 @@ def test_search_titles(query, format):
         print(response.text)
 
 def test_genre_search(qgenre, minrating, yrFrom=None, yrTo=None, format_type="json"):
-    url = "http://localhost:9876/ntuaflix_api/bygenre"
+    url = "https://0.0.0.0:9876/ntuaflix_api/bygenre"
     headers = {'Content-Type': 'application/json'}
     data = {
         "qgenre": qgenre,
@@ -290,7 +290,7 @@ def test_genre_search(qgenre, minrating, yrFrom=None, yrTo=None, format_type="js
         print(response.text)
 
 def test_search_name(namePart: str, format_type: str = "json"):
-    url = "http://localhost:9876/ntuaflix_api/searchname"
+    url = "https://0.0.0.0:9876/ntuaflix_api/searchname"
     headers = {'Content-Type': 'application/json'}
     data = {
         "namePart": namePart,
@@ -320,7 +320,7 @@ def test_search_name(namePart: str, format_type: str = "json"):
         print(response.text)
 
 def test_get_name_details(nameID: str, format_type: str = "json"):
-    url = f"http://localhost:9876/ntuaflix_api/name/{nameID}"
+    url = f"https://0.0.0.0:9876/ntuaflix_api/name/{nameID}"
     params = {"format_type": format_type}
     response = requests.get(url, params=params)
 
