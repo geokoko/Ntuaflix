@@ -66,13 +66,13 @@ CREATE TABLE `Person` (
 -- Create table `Participates_In`
 CREATE TABLE `Participates_In` (
   `ID` int NOT NULL AUTO_INCREMENT,
-  `Title_FK` int NOT NULL,
+  `Title_FK` int NOT NULL ,
   `Name_FK` int NOT NULL,
   `Ordering` int(11) DEFAULT NULL,
   `Job_Category` varchar(255) DEFAULT NULL,
   `Character` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`ID`),
-  UNIQUE KEY `unique_combination` (`Title_FK`, `Name_FK`, `Ordering`),
+  UNIQUE KEY `unique_combination` (`Title_FK`, `Name_FK`, `Job_Category`),
   FOREIGN KEY (`Title_FK`) REFERENCES `Title` (`ID`) ON DELETE CASCADE,
   FOREIGN KEY (`Name_FK`) REFERENCES `Person` (`ID`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

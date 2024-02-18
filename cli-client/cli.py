@@ -13,11 +13,11 @@ def healthcheck():
 
 
 #Not tested yet
-def resetall():
+def resetall(format: str = 'json'):
     try:
-        print("Admin performs a total reset")
-       # response = requests.get(f"{BASE_URL}/admin/resetall")
-       # handle_response(response, args.format)
+       #print("Admin performs a total reset")
+        response = requests.post(f"{BASE_URL}/admin/resetall", params={'format': format})
+        handle_response(response, format)
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
 
@@ -30,7 +30,7 @@ def newtitles(args):
     try:
         with open(args.filename, 'rb') as file:
             files = {'file': (args.filename, file, 'application/octet-stream')}
-            response = requests.post(f'{BASE_URL}/admin/upload/titlebasics', files=files)
+            response = requests.post(f'{BASE_URL}/admin/upload/titlebasics', files=files, params={'format': args.format})
             handle_response(response, args.format)
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
@@ -44,7 +44,7 @@ def newakas(args):
     try:
         with open(args.filename, 'rb') as file:
             files = {'file': (args.filename, file, 'application/octet-stream')}
-            response = requests.post(f'{BASE_URL}/admin/upload/titleakas', files=files)
+            response = requests.post(f'{BASE_URL}/admin/upload/titleakas', files=files, params={'format': args.format})
             handle_response(response, args.format)
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
@@ -58,7 +58,7 @@ def newnames(args):
     try:
         with open(args.filename, 'rb') as file:
             files = {'file': (args.filename, file, 'application/octet-stream')}
-            response = requests.post(f'{BASE_URL}/admin/upload/namebasics', files=files)
+            response = requests.post(f'{BASE_URL}/admin/upload/namebasics', files=files, params={'format': args.format})
             handle_response(response, args.format)
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
@@ -72,7 +72,7 @@ def newcrew(args):
     try:
         with open(args.filename, 'rb') as file:
             files = {'file': (args.filename, file, 'application/octet-stream')}
-            response = requests.post(f'{BASE_URL}/admin/upload/titlecrew', files=files)
+            response = requests.post(f'{BASE_URL}/admin/upload/titlecrew', files=files, params={'format': args.format})
             handle_response(response, args.format)
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
@@ -86,7 +86,7 @@ def newepisode(args):
     try:
         with open(args.filename, 'rb') as file:
             files = {'file': (args.filename, file, 'application/octet-stream')}
-            response = requests.post(f'{BASE_URL}/admin/upload/titleepisode', files=files)
+            response = requests.post(f'{BASE_URL}/admin/upload/titleepisode', files=files, params={'format': args.format})
             handle_response(response, args.format)
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
@@ -100,7 +100,7 @@ def newprincipals(args):
     try:
         with open(args.filename, 'rb') as file:
             files = {'file': (args.filename, file, 'application/octet-stream')}
-            response = requests.post(f'{BASE_URL}/admin/upload/titleprincipals', files=files)
+            response = requests.post(f'{BASE_URL}/admin/upload/titleprincipals', files=files, params={'format': args.format})
             handle_response(response, args.format)
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
@@ -114,7 +114,7 @@ def newratings(args):
     try:
         with open(args.filename, 'rb') as file:
             files = {'file': (args.filename, file, 'application/octet-stream')}
-            response = requests.post(f'{BASE_URL}/admin/upload/titleratings', files=files)
+            response = requests.post(f'{BASE_URL}/admin/upload/titleratings', files=files, params={'format': args.format})
             handle_response(response, args.format)
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
@@ -231,7 +231,7 @@ if __name__ == "__main__":
     if args.scope == "healthcheck":
         healthcheck()
     elif args.scope == "resetall":
-        resetall()
+        resetall(args.format)
     elif args.scope == "name":
         if not args.nameid:
             print("Error: --nameid is a mandatory parameter for the 'name' scope.")
