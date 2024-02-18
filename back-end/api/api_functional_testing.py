@@ -1,11 +1,18 @@
 import requests
+import pandas as pd
+import io
+import os
+import json 
 
 def test_upload_title_basics():
     # Set the endpoint URL
     endpoint = "http://localhost:9876/ntuaflix_api/admin/upload/titlebasics"
     
-    # Set the file path of the TSV file
-    file_path = "/home/ariadni/Documents/softeng23-42/back-end/db/data/truncated_title.basics.tsv"  # Update with your file path
+    # Get the directory path of the current script
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # Set the file path of the TSV file relative to the current directory
+    file_path = os.path.join(current_dir, "../db/data/truncated_title.basics.tsv")
     
     try:
         # Open and read the TSV file
@@ -29,8 +36,11 @@ def test_upload_title_akas():
     # Set the endpoint URL
     endpoint = "http://localhost:9876/ntuaflix_api/admin/upload/titleakas"
     
-    # Set the file path of the TSV file
-    file_path = "/home/ariadni/Documents/softeng23-42/back-end/db/data/truncated_title.akas.tsv"  # Update with your file path
+    # Get the directory path of the current script
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # Set the file path of the TSV file relative to the current directory
+    file_path = os.path.join(current_dir, "../db/data/truncated_title.akas.tsv")
     
     try:
         # Open and read the TSV file
@@ -54,8 +64,11 @@ def test_upload_name_basics():
     # Set the endpoint URL
     endpoint = "http://localhost:9876/ntuaflix_api/admin/upload/namebasics"
     
-    # Set the file path of the TSV file
-    file_path = "/home/ariadni/Documents/softeng23-42/back-end/db/data/truncated_name.basics.tsv"  # Update with your file path
+    # Get the directory path of the current script
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # Set the file path of the TSV file relative to the current directory
+    file_path = os.path.join(current_dir, "../db/data/truncated_name.basics.tsv")
     
     try:
         # Open and read the TSV file
@@ -79,9 +92,12 @@ def test_upload_title_crew():
     # Set the endpoint URL
     endpoint = "http://localhost:9876/ntuaflix_api/admin/upload/titlecrew"
     
-    # Set the file path of the TSV file
-    file_path = "/home/ariadni/Documents/softeng23-42/back-end/db/data/truncated_title.crew.tsv"  # Update with your file path
+    # Get the directory path of the current script
+    current_dir = os.path.dirname(os.path.abspath(__file__))
     
+    # Set the file path of the TSV file relative to the current directory
+    file_path = os.path.join(current_dir, "../db/data/truncated_title.crew.tsv")
+
     try:
         # Open and read the TSV file
         with open(file_path, 'rb') as file:
@@ -104,9 +120,12 @@ def test_upload_title_episode():
     # Set the endpoint URL
     endpoint = "http://localhost:9876/ntuaflix_api/admin/upload/titleepisode"
     
-    # Set the file path of the TSV file
-    file_path = "/home/ariadni/Documents/softeng23-42/back-end/db/data/truncated_title.episode.tsv"  # Update with your file path
+    # Get the directory path of the current script
+    current_dir = os.path.dirname(os.path.abspath(__file__))
     
+    # Set the file path of the TSV file relative to the current directory
+    file_path = os.path.join(current_dir, "../db/data/truncated_title.episode.tsv")
+
     try:
         # Open and read the TSV file
         with open(file_path, 'rb') as file:
@@ -129,9 +148,12 @@ def test_upload_title_principals():
     # Set the endpoint URL
     endpoint = "http://localhost:9876/ntuaflix_api/admin/upload/titleprincipals"
     
-    # Set the file path of the TSV file
-    file_path = "/home/ariadni/Documents/softeng23-42/back-end/db/data/truncated_title.principals.tsv"  # Update with your file path
+    # Get the directory path of the current script
+    current_dir = os.path.dirname(os.path.abspath(__file__))
     
+    # Set the file path of the TSV file relative to the current directory
+    file_path = os.path.join(current_dir, "../db/data/truncated_title.principals.tsv")
+
     try:
         # Open and read the TSV file
         with open(file_path, 'rb') as file:
@@ -154,9 +176,12 @@ def test_upload_title_ratings():
     # Set the endpoint URL
     endpoint = "http://localhost:9876/ntuaflix_api/admin/upload/titleratings"
     
-    # Set the file path of the TSV file
-    file_path = "/home/ariadni/Documents/softeng23-42/back-end/db/data/truncated_title.ratings.tsv"  # Update with your file path
+    # Get the directory path of the current script
+    current_dir = os.path.dirname(os.path.abspath(__file__))
     
+    # Set the file path of the TSV file relative to the current directory
+    file_path = os.path.join(current_dir, "../db/data/truncated_title.ratings.tsv")
+
     try:
         # Open and read the TSV file
         with open(file_path, 'rb') as file:
@@ -174,7 +199,6 @@ def test_upload_title_ratings():
             
     except Exception as e:
         print(f"An error occurred: {e}")
-
 
 def test_title_endpoint(title_id, format_type):
     url = f"http://localhost:9876/ntuaflix_api/title/{title_id}?format_type={format_type}"
@@ -206,14 +230,20 @@ def test_title_endpoint(title_id, format_type):
         print(f"Failed to fetch title details. Status Code: {response.status_code}")
         print(response.text)
 
-def test_search_titles(query, format_type):
-    url = f"http://localhost:9876/ntuaflix_api/searchtitle?query={query}&format_type={format_type}"
-    response = requests.get(url)
+def test_search_titles(query, format):
+    url = "http://localhost:9876/ntuaflix_api/searchtitle"
+    headers = {'Content-Type': 'application/json'}
+    data = {"titlePart": query}  # Assuming your query object expects a "titlePart" field
+    params = {"format": format}
+
+    print("Request URL:", url)
+    response = requests.get(url, headers=headers, params=params, data=json.dumps(data))
+
     if response.status_code == 200:
-        if format_type == "json":
+        if format == "json":
             print("Title Objects:")
             print(response.json())
-        elif format_type == "csv":
+        elif format == "csv":
             csv_content = response.text
             if csv_content:
                 print("CSV Content:")
@@ -228,14 +258,17 @@ def test_search_titles(query, format_type):
 
 def test_genre_search(qgenre, minrating, yrFrom=None, yrTo=None, format_type="json"):
     url = "http://localhost:9876/ntuaflix_api/bygenre"
-    params = {
+    headers = {'Content-Type': 'application/json'}
+    data = {
         "qgenre": qgenre,
         "minrating": minrating,
         "yrFrom": yrFrom,
         "yrTo": yrTo,
-        "format_type": format_type
+        "format": format_type
     }
-    response = requests.get(url, params=params)
+
+    print("Request URL:", url)
+    response = requests.get(url, headers=headers, data=json.dumps(data))
 
     if response.status_code == 200:
         if format_type == "json":
@@ -258,11 +291,14 @@ def test_genre_search(qgenre, minrating, yrFrom=None, yrTo=None, format_type="js
 
 def test_search_name(namePart: str, format_type: str = "json"):
     url = "http://localhost:9876/ntuaflix_api/searchname"
-    params = {
-        "query": namePart,
-        "format_type": format_type
+    headers = {'Content-Type': 'application/json'}
+    data = {
+        "namePart": namePart,
+        "format": format_type
     }
-    response = requests.get(url, params=params)
+
+    print("Request URL:", url)
+    response = requests.get(url, headers=headers, data=json.dumps(data))
 
     if response.status_code == 200:
         if format_type == "json":
@@ -318,8 +354,9 @@ test_upload_title_principals()
 test_upload_title_ratings()
 
 # Replace the parameters with your desired values for testing
+# Here are some random ones:
 test_title_endpoint("tt0103145", "json")
-test_search_titles("Baby", "csv")
-test_genre_search("Drama", "7.0", "1990", "2000", "json")
-test_search_name("Smith", format_type="csv")
+test_search_titles("Baby", "json")
+test_genre_search("Drama", "7.0", "1900", "2010", "csv")
+test_search_name("Smith", format_type="json")
 test_get_name_details("nm9928038", format_type="csv")
