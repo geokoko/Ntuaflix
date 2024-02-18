@@ -857,40 +857,126 @@ async def initiate_reset(format: str = 'json'):
             # Get the directory of the current script
             current_dir = os.path.dirname(os.path.realpath(__file__))
             
-            #Upload Titles
+            # Upload Titles
             titles = os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_title.basics.tsv')
             async with aiofiles.open(titles, mode='rb') as file:
-                await upload_title_basics(titles)
+                response = await upload_title_basics(titles)
+                if isinstance(response, JSONResponse):
+                    status_code = response.status_code
+                    message = "Failed to upload titles"
+                else:
+                    status_code = response
+                    message = "Failed to upload titles"
+                
+                if status_code == 500:
+                    if format == 'csv':
+                        return PlainTextResponse(f"status, reason\nfailed, {message}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    else:  # Default to JSON
+                        return JSONResponse({"status": "failed", "reason": message}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR) 
 
+
+            
             #Upload Title Akas
             title_akas = os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_title.akas.tsv')
             async with aiofiles.open(title_akas, mode='rb') as file:
-                await upload_title_akas(title_akas)
-            
+                response = await upload_title_akas(title_akas)
+                if isinstance(response, JSONResponse):
+                    status_code = response.status_code
+                    message = "Failed to upload alternative titles"
+                else:
+                    status_code = response
+                    message = "Failed to upload alternative titles"
+                
+                if status_code == 500:
+                    if format == 'csv':
+                        return PlainTextResponse(f"status, reason\nfailed, {message}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    else:  # Default to JSON
+                        return JSONResponse({"status": "failed", "reason": message}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR) 
+                
             #Upload Names
             name = os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_name.basics.tsv')
             async with aiofiles.open(name, mode='rb') as file:
-                await upload_name_basics(name)
+                response = await upload_name_basics(name)
+                if isinstance(response, JSONResponse):
+                    status_code = response.status_code
+                    message = "Failed to upload names"
+                else:
+                    status_code = response
+                    message = "Failed to upload names"
                 
+                if status_code == 500:
+                    if format == 'csv':
+                        return PlainTextResponse(f"status, reason\nfailed, {message}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    else:  # Default to JSON
+                        return JSONResponse({"status": "failed", "reason": message}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                  
             #Upload Crew
             crew = os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_title.crew.tsv')
             async with aiofiles.open(crew, mode='rb') as file:
-                await upload_title_crew(crew)
+                response = await upload_title_crew(crew)
+                if isinstance(response, JSONResponse):
+                    status_code = response.status_code
+                    message = "Failed to upload crew"
+                else:
+                    status_code = response
+                    message = "Failed to upload crew"
                 
+                if status_code == 500:
+                    if format == 'csv':
+                        return PlainTextResponse(f"status, reason\nfailed, {message}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    else:  # Default to JSON
+                        return JSONResponse({"status": "failed", "reason": message}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    
             #Upload Episodes
             episode = os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_title.episode.tsv')
             async with aiofiles.open(episode, mode='rb') as file:
-                await upload_title_episode(episode)
+                response = await upload_title_episode(episode)
+                if isinstance(response, JSONResponse):
+                    status_code = response.status_code
+                    message = "Failed to upload episodes"
+                else:
+                    status_code = response
+                    message = "Failed to upload episodes"
+                
+                if status_code == 500:
+                    if format == 'csv':
+                        return PlainTextResponse(f"status, reason\nfailed, {message}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    else:  # Default to JSON
+                        return JSONResponse({"status": "failed", "reason": message}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR) 
                 
             #Upload Principals
             principal = os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_title.principals.tsv')
             async with aiofiles.open(principal, mode='rb') as file:
-                await upload_title_principals(principal)
+                response = await upload_title_principals(principal)
+                if isinstance(response, JSONResponse):
+                    status_code = response.status_code
+                    message = "Failed to upload principals"
+                else:
+                    status_code = response
+                    message = "Failed to upload principals"
+                
+                if status_code == 500:
+                    if format == 'csv':
+                        return PlainTextResponse(f"status, reason\nfailed, {message}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    else:  # Default to JSON
+                        return JSONResponse({"status": "failed", "reason": message}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR) 
                 
             #Upload Rating
             rating = os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_title.ratings.tsv')
             async with aiofiles.open(rating, mode='rb') as file:
-                await upload_title_ratings(rating)
+                response = await upload_title_ratings(rating)
+                if isinstance(response, JSONResponse):
+                    status_code = response.status_code
+                    message = "Failed to upload rating"
+                else:
+                    status_code = response
+                    message = "Failed to upload rating"
+                
+                if status_code == 500:
+                    if format == 'csv':
+                        return PlainTextResponse(f"status, reason\nfailed, {message}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    else:  # Default to JSON
+                        return JSONResponse({"status": "failed", "reason": message}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR) 
         
         if format == 'csv':
             return PlainTextResponse(f"status\nOK", status_code=status.HTTP_200_OK)
@@ -1309,7 +1395,7 @@ async def update_title_ratings(title_id, average_rating, num_votes):
         try:
             await cursor.execute(query, (average_rating, num_votes, title_id))
             await connection.commit()
-            print("Insert successful")
+            #print("Insert successful")
         except Exception as e:
             print(f"Error executing query: {e}")
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")

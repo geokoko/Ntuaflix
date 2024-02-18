@@ -36,7 +36,6 @@
                             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Admin Operations</a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="#" id="backup">Backup</a></li>
-                                <li><a class="dropdown-item" href="#" id="restore">Restore</a></li>
                                 <li><a class="dropdown-item" href="#" id="reset">Reset Database</a></li>
                             </ul>
                         </li>
@@ -146,7 +145,7 @@
                         });
             });
 
-            document.getElementById('restore').addEventListener('click', function(e) {
+            /*document.getElementById('restore').addEventListener('click', function(e) {
                 e.preventDefault();
                 if(confirm('Are you sure you want to restore the database? This cannot be undone.')) {
                     const loader = document.querySelector('.loader');
@@ -179,20 +178,20 @@
                             }
                         });
                 }
-            });
+            });*/
 
             document.getElementById('reset').addEventListener('click', function(e) {
                 e.preventDefault();
                 console.log("Reset button clicked");
                 if(confirm('Are you sure you want to reset the database to its original state? This will erase all current data.')) {
-                    const loader = document.querySelector('.loader');
+                    /*const loader = document.querySelector('.loader');
                     if (!loader) {
                         console.error('Loader element not found.');
                         return; // Stop the function if loader is not found
                     }
 
                     loader.classList.remove('loader-hidden');
-                    console.log('Loader should now be visible.');
+                    console.log('Loader should now be visible.');*/
 
                     fetch('/ntuaflix_api/admin/resetall', { method: 'POST' })
                         .then(response => {
