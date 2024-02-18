@@ -3,8 +3,8 @@ import argparse, requests, os, csv, json
 BASE_URL = "http://127.0.0.1:9876/ntuaflix_api" 
 
 
-#Using try-catch for error handlind
-def healthcheck():
+#Using try-catch for error handling
+def healthcheck(args):
     try:
         response = requests.get(f"{BASE_URL}/admin/healthcheck")
         handle_response(response, args.format)
@@ -12,12 +12,10 @@ def healthcheck():
         print(f"An error occurred: {e}")
 
 
-#Not tested yet
-def resetall():
+def resetall(args):
     try:
-        print("Admin performs a total reset")
-       # response = requests.get(f"{BASE_URL}/admin/resetall")
-       # handle_response(response, args.format)
+        response = requests.post(f"{BASE_URL}/admin/resetall", params={'format': args.format})
+        handle_response(response, args.format)
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
 
@@ -30,7 +28,7 @@ def newtitles(args):
     try:
         with open(args.filename, 'rb') as file:
             files = {'file': (args.filename, file, 'application/octet-stream')}
-            response = requests.post(f'{BASE_URL}/admin/upload/titlebasics', files=files)
+            response = requests.post(f'{BASE_URL}/admin/upload/titlebasics', files=files, params={'format': args.format})
             handle_response(response, args.format)
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
@@ -44,7 +42,7 @@ def newakas(args):
     try:
         with open(args.filename, 'rb') as file:
             files = {'file': (args.filename, file, 'application/octet-stream')}
-            response = requests.post(f'{BASE_URL}/admin/upload/titleakas', files=files)
+            response = requests.post(f'{BASE_URL}/admin/upload/titleakas', files=files, params={'format': args.format})
             handle_response(response, args.format)
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
@@ -58,7 +56,7 @@ def newnames(args):
     try:
         with open(args.filename, 'rb') as file:
             files = {'file': (args.filename, file, 'application/octet-stream')}
-            response = requests.post(f'{BASE_URL}/admin/upload/namebasics', files=files)
+            response = requests.post(f'{BASE_URL}/admin/upload/namebasics', files=files, params={'format': args.format})
             handle_response(response, args.format)
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
@@ -72,7 +70,7 @@ def newcrew(args):
     try:
         with open(args.filename, 'rb') as file:
             files = {'file': (args.filename, file, 'application/octet-stream')}
-            response = requests.post(f'{BASE_URL}/admin/upload/titlecrew', files=files)
+            response = requests.post(f'{BASE_URL}/admin/upload/titlecrew', files=files, params={'format': args.format})
             handle_response(response, args.format)
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
@@ -86,7 +84,7 @@ def newepisode(args):
     try:
         with open(args.filename, 'rb') as file:
             files = {'file': (args.filename, file, 'application/octet-stream')}
-            response = requests.post(f'{BASE_URL}/admin/upload/titleepisode', files=files)
+            response = requests.post(f'{BASE_URL}/admin/upload/titleepisode', files=files, params={'format': args.format})
             handle_response(response, args.format)
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
@@ -100,7 +98,7 @@ def newprincipals(args):
     try:
         with open(args.filename, 'rb') as file:
             files = {'file': (args.filename, file, 'application/octet-stream')}
-            response = requests.post(f'{BASE_URL}/admin/upload/titleprincipals', files=files)
+            response = requests.post(f'{BASE_URL}/admin/upload/titleprincipals', files=files, params={'format': args.format})
             handle_response(response, args.format)
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
@@ -114,7 +112,7 @@ def newratings(args):
     try:
         with open(args.filename, 'rb') as file:
             files = {'file': (args.filename, file, 'application/octet-stream')}
-            response = requests.post(f'{BASE_URL}/admin/upload/titleratings', files=files)
+            response = requests.post(f'{BASE_URL}/admin/upload/titleratings', files=files, params={'format': args.format})
             handle_response(response, args.format)
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
@@ -201,6 +199,16 @@ def handle_response(response, format):
         print("Status Code 404: Not Found. The requested resource was not found.")
     elif response.status_code == 500:
         print("Status Code 500: Internal server error.")
+        print("The function returned:")
+        if format == 'json':
+            try:
+                print(response.json())
+            except UnicodeEncodeError:
+                print(response.text.encode('utf-8', errors='ignore').decode('utf-8'))
+        elif format == "csv":
+            print(response.text)
+        else:
+            print("Unsupported format")
     else:
         print(f"Unexpected status code: {response.status_code}")
 
@@ -229,9 +237,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.scope == "healthcheck":
-        healthcheck()
+        healthcheck(args)
     elif args.scope == "resetall":
-        resetall()
+        resetall(args)
     elif args.scope == "name":
         if not args.nameid:
             print("Error: --nameid is a mandatory parameter for the 'name' scope.")

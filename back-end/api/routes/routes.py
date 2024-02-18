@@ -4,7 +4,7 @@ from fastapi.responses import HTMLResponse, FileResponse, PlainTextResponse, JSO
 from typing import List, Optional
 from ..models import TitleObject, NameObject, AkaTitle, PrincipalsObject, RatingObject, GenreTitle, NameTitleObject, tqueryObject, nqueryObject, gqueryObject
 from ..database import get_database_connection, check_connection, create_backup, restore, pick_backup, reset_database
-from ..utils.admin_helpers import insert_into_name, insert_into_profession, insert_into_profession_person, fetch_person_primary_key, check_existing_participation, update_title_ratings, insert_into_episode, insert_into_title, fetch_title_primary_key, insert_into_participates_in
+from ..utils.admin_helpers import insert_into_name, insert_into_profession, insert_into_profession_person, fetch_person_primary_key, check_existing_participation, update_title_ratings, insert_into_episode, insert_into_title, fetch_title_primary_key, insert_into_participates_in, insert_into_participates_in_crew
 import aiomysql
 from typing import Optional, Union
 import pandas as pd
@@ -12,6 +12,7 @@ import csv
 import os
 from io import StringIO
 import aiofiles
+from pymysql.err import IntegrityError
 
 router = APIRouter()
 BASE_URL = "/ntuaflix_api"
@@ -838,7 +839,7 @@ async def initiate_restore():
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/admin/resetall")
-async def initiate_reset():
+async def initiate_reset(format: str = 'json'):
     try:
         async with await get_database_connection() as connection, connection.cursor() as cursor:
             tables_to_drop = [
@@ -861,54 +862,143 @@ async def initiate_reset():
             # Get the directory of the current script
             current_dir = os.path.dirname(os.path.realpath(__file__))
             
-            #Upload Titles
+            # Upload Titles
             titles = os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_title.basics.tsv')
             async with aiofiles.open(titles, mode='rb') as file:
-                await upload_title_basics(titles)
+                response = await upload_title_basics(titles)
+                if isinstance(response, JSONResponse):
+                    status_code = response.status_code
+                    message = "Failed to upload titles"
+                else:
+                    status_code = response
+                    message = "Failed to upload titles"
+                
+                if status_code == 500:
+                    if format == 'csv':
+                        return PlainTextResponse(f"status, reason\nfailed, {message}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    else:  # Default to JSON
+                        return JSONResponse({"status": "failed", "reason": message}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR) 
 
+
+            
             #Upload Title Akas
             title_akas = os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_title.akas.tsv')
             async with aiofiles.open(title_akas, mode='rb') as file:
-                await upload_title_akas(title_akas)
-            
+                response = await upload_title_akas(title_akas)
+                if isinstance(response, JSONResponse):
+                    status_code = response.status_code
+                    message = "Failed to upload alternative titles"
+                else:
+                    status_code = response
+                    message = "Failed to upload alternative titles"
+                
+                if status_code == 500:
+                    if format == 'csv':
+                        return PlainTextResponse(f"status, reason\nfailed, {message}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    else:  # Default to JSON
+                        return JSONResponse({"status": "failed", "reason": message}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR) 
+                
             #Upload Names
             name = os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_name.basics.tsv')
             async with aiofiles.open(name, mode='rb') as file:
-                await upload_name_basics(name)
+                response = await upload_name_basics(name)
+                if isinstance(response, JSONResponse):
+                    status_code = response.status_code
+                    message = "Failed to upload names"
+                else:
+                    status_code = response
+                    message = "Failed to upload names"
                 
+                if status_code == 500:
+                    if format == 'csv':
+                        return PlainTextResponse(f"status, reason\nfailed, {message}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    else:  # Default to JSON
+                        return JSONResponse({"status": "failed", "reason": message}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                  
             #Upload Crew
-            #crew = os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_title.crew.tsv')
-            #async with aiofiles.open(crew, mode='rb') as file:
-                #await upload_title_crew(crew)
+            crew = os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_title.crew.tsv')
+            async with aiofiles.open(crew, mode='rb') as file:
+                response = await upload_title_crew(crew)
+                if isinstance(response, JSONResponse):
+                    status_code = response.status_code
+                    message = "Failed to upload crew"
+                else:
+                    status_code = response
+                    message = "Failed to upload crew"
                 
+                if status_code == 500:
+                    if format == 'csv':
+                        return PlainTextResponse(f"status, reason\nfailed, {message}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    else:  # Default to JSON
+                        return JSONResponse({"status": "failed", "reason": message}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    
             #Upload Episodes
             episode = os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_title.episode.tsv')
             async with aiofiles.open(episode, mode='rb') as file:
-                await upload_title_episode(episode)
+                response = await upload_title_episode(episode)
+                if isinstance(response, JSONResponse):
+                    status_code = response.status_code
+                    message = "Failed to upload episodes"
+                else:
+                    status_code = response
+                    message = "Failed to upload episodes"
+                
+                if status_code == 500:
+                    if format == 'csv':
+                        return PlainTextResponse(f"status, reason\nfailed, {message}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    else:  # Default to JSON
+                        return JSONResponse({"status": "failed", "reason": message}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR) 
                 
             #Upload Principals
             principal = os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_title.principals.tsv')
             async with aiofiles.open(principal, mode='rb') as file:
-                await upload_title_principals(principal)
+                response = await upload_title_principals(principal)
+                if isinstance(response, JSONResponse):
+                    status_code = response.status_code
+                    message = "Failed to upload principals"
+                else:
+                    status_code = response
+                    message = "Failed to upload principals"
+                
+                if status_code == 500:
+                    if format == 'csv':
+                        return PlainTextResponse(f"status, reason\nfailed, {message}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    else:  # Default to JSON
+                        return JSONResponse({"status": "failed", "reason": message}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR) 
                 
             #Upload Rating
             rating = os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_title.ratings.tsv')
             async with aiofiles.open(rating, mode='rb') as file:
-                await upload_title_ratings(rating)
-            
-
-                    
-        return {"message": "Database reset and initial data uploaded successfully"}
+                response = await upload_title_ratings(rating)
+                if isinstance(response, JSONResponse):
+                    status_code = response.status_code
+                    message = "Failed to upload rating"
+                else:
+                    status_code = response
+                    message = "Failed to upload rating"
+                
+                if status_code == 500:
+                    if format == 'csv':
+                        return PlainTextResponse(f"status, reason\nfailed, {message}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    else:  # Default to JSON
+                        return JSONResponse({"status": "failed", "reason": message}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR) 
+        
+        if format == 'csv':
+            return PlainTextResponse(f"status\nOK", status_code=status.HTTP_200_OK)
+        else:  # Default to JSON
+            return JSONResponse({"status": "OK"}, status_code=status.HTTP_200_OK)
             
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))    
+        if format == 'csv':
+            return PlainTextResponse(f"status, reason\nfailed, {str(e)}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        else:  # Default to JSON
+            return JSONResponse({"status": "failed", "reason": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)    
 
 
 # endpoint 2
 @router.post("/admin/upload/titlebasics")
-async def upload_title_basics(file: Union[UploadFile, str]):
+async def upload_title_basics(file: Union[UploadFile, str], format: str = 'json'):
     try:
-        print("Endpoint 2")
         # Check if 'file' is a string (filename)
         if isinstance(file, str):
             with open(file, 'r') as f:
@@ -972,16 +1062,21 @@ async def upload_title_basics(file: Union[UploadFile, str]):
                                 await cursor.execute(query_title_genre, (title_fk, genre_fk))
                                 await connection.commit()
 
-            return {"message": "File uploaded and data stored successfully"}
+            if format == 'csv':
+                return PlainTextResponse("status, message\nOK, File uploaded and data stored successfully", status_code=status.HTTP_200_OK)
+            else:  # Default to JSON
+                return JSONResponse({"status": "OK", "message": "File uploaded and data stored successfully"}, status_code=status.HTTP_200_OK)
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        if format == 'csv':
+            return PlainTextResponse(f"status, reason\nfailed, {str(e)}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        else:  # Default to JSON
+            return JSONResponse({"status": "failed", "reason": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # endpoint 3
 @router.post("/admin/upload/titleakas")
-async def upload_title_akas(file: Union[UploadFile, str]):
+async def upload_title_akas(file: Union[UploadFile, str], format: str = 'json'):
     try:
-        print("Endpoint 3")
         if isinstance(file, str):
             with open(file, 'r') as f:
                 df = pd.read_csv(f, sep='\t', low_memory=False)
@@ -1031,16 +1126,25 @@ async def upload_title_akas(file: Union[UploadFile, str]):
         if errors:
             # If there are errors, raise an HTTPException with the collected error messages
             error_message = "\n".join(errors)
-            raise HTTPException(status_code=500, detail=error_message)
+            if format == 'csv':
+                raise HTTPException(status_code=500, detail=f"status, reason\nfailed, {error_message}")
+            else:  # Default to JSON
+                raise HTTPException(status_code=500, detail={"status": "failed", "reason": error_message})
 
-        return {"message": "File uploaded and data stored successfully"}
+        if format == 'csv':
+            return PlainTextResponse("status, message\nOK, File uploaded and data stored successfully", status_code=status.HTTP_200_OK)
+        else:  # Default to JSON
+            return JSONResponse({"status": "OK", "message": "File uploaded and data stored successfully"}, status_code=status.HTTP_200_OK)
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        if format == 'csv':
+            return PlainTextResponse(f"status, reason\nfailed, {str(e)}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        else:  # Default to JSON
+            return JSONResponse({"status": "failed", "reason": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 #Admin Endpoint 4
 @router.post("/admin/upload/namebasics")
-async def upload_name_basics(file: Union[UploadFile, str]):
+async def upload_name_basics(file: Union[UploadFile, str], format: str = 'json'):
     try:
         if isinstance(file, str):
             with open(file, 'r') as f:
@@ -1075,15 +1179,21 @@ async def upload_name_basics(file: Union[UploadFile, str]):
                         # Insert data into the 'Profession_Person' table
                         await insert_into_profession_person((profession_fk, name_fk))
 
-        return {"message": "File uploaded and data stored successfully"}
+        if format == 'csv':
+            return PlainTextResponse("status, message\nOK, File uploaded and data stored successfully", status_code=status.HTTP_200_OK)
+        else:  # Default to JSON
+            return JSONResponse({"status": "OK", "message": "File uploaded and data stored successfully"}, status_code=status.HTTP_200_OK)
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        if format == 'csv':
+            return PlainTextResponse(f"status, reason\nfailed, {str(e)}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        else:  # Default to JSON
+            return JSONResponse({"status": "failed", "reason": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 #Admin Endpoint 5
 @router.post("/admin/upload/titlecrew")
-async def upload_title_crew(file: Union[UploadFile, str]):
+async def upload_title_crew(file: Union[UploadFile, str], format: str = 'json'):
     try:
         if isinstance(file, str):
             with open(file, 'r') as f:
@@ -1122,7 +1232,7 @@ async def upload_title_crew(file: Union[UploadFile, str]):
                         continue
 
                     # Insert data into the 'Participates_In' table for directors
-                    await insert_into_participates_in((title_fk, director_name_fk, None, 'director', None))
+                    await insert_into_participates_in_crew((title_fk, director_name_fk, None, 'director', None))
                 except Exception as e:
                     errors.append(str(e))
                     continue
@@ -1149,7 +1259,7 @@ async def upload_title_crew(file: Union[UploadFile, str]):
                         continue
 
                     # Insert data into the 'Participates_In' table for writers
-                    await insert_into_participates_in((title_fk, writer_name_fk, None, 'writer', None))
+                    await insert_into_participates_in_crew((title_fk, writer_name_fk, None, 'writer', None))
                 except Exception as e:
                     errors.append(str(e))
                     continue
@@ -1157,18 +1267,26 @@ async def upload_title_crew(file: Union[UploadFile, str]):
         if errors:
             # If there are errors, raise an HTTPException with the collected error messages
             error_message = "\n".join(errors)
-            print(error_message)
-            raise HTTPException(status_code=500, detail=error_message)
+            if format == 'csv':
+                raise HTTPException(status_code=500, detail=f"status, reason\nfailed, {error_message}")
+            else:  # Default to JSON
+                raise HTTPException(status_code=500, detail={"status": "failed", "reason": error_message})
 
-        return {"message": "File uploaded and data stored successfully"}
+        if format == 'csv':
+            return PlainTextResponse("status, message\nOK, File uploaded and data stored successfully", status_code=status.HTTP_200_OK)
+        else:  # Default to JSON
+            return JSONResponse({"status": "OK", "message": "File uploaded and data stored successfully"}, status_code=status.HTTP_200_OK)
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        if format == 'csv':
+            return PlainTextResponse(f"status, reason\nfailed, {str(e)}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        else:  # Default to JSON
+            return JSONResponse({"status": "failed", "reason": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 #Admin Endpoint 6
 @router.post("/admin/upload/titleepisode")
-async def upload_title_episode(file: Union[UploadFile, str]):
+async def upload_title_episode(file: Union[UploadFile, str], format: str = 'json'):
     try:
         if isinstance(file, str):
             with open(file, 'r') as f:
@@ -1205,16 +1323,25 @@ async def upload_title_episode(file: Union[UploadFile, str]):
         if errors:
             # If there are errors, raise an HTTPException with the collected error messages
             error_message = "\n".join(errors)
-            raise HTTPException(status_code=500, detail=error_message)
+            if format == 'csv':
+                raise HTTPException(status_code=500, detail=f"status, reason\nfailed, {error_message}")
+            else:  # Default to JSON
+                raise HTTPException(status_code=500, detail={"status": "failed", "reason": error_message})
 
-        return {"message": "File uploaded and data stored successfully"}
+        if format == 'csv':
+            return PlainTextResponse("status, message\nOK, File uploaded and data stored successfully", status_code=status.HTTP_200_OK)
+        else:  # Default to JSON
+            return JSONResponse({"status": "OK", "message": "File uploaded and data stored successfully"}, status_code=status.HTTP_200_OK)
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        if format == 'csv':
+            return PlainTextResponse(f"status, reason\nfailed, {str(e)}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        else:  # Default to JSON
+            return JSONResponse({"status": "failed", "reason": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 #Endpoint 7
 @router.post("/admin/upload/titleprincipals")
-async def upload_title_principals(file: Union[UploadFile, str]):
+async def upload_title_principals(file: Union[UploadFile, str], format: str = 'json'):
     try:
         # Check if the uploaded file is of the correct format
         #if not file.filename.endswith(".tsv"):
@@ -1248,13 +1375,21 @@ async def upload_title_principals(file: Union[UploadFile, str]):
 
         # Check if any data was inserted
         if len(df) > 0:
-            return {"message": "File uploaded and data stored successfully"}, status.HTTP_200_OK
+            if format == 'csv':
+                return PlainTextResponse("status, message\nOK, File uploaded and data stored successfully", status_code=status.HTTP_200_OK)
+            else:  # Default to JSON
+                return JSONResponse({"status": "OK", "message": "File uploaded and data stored successfully"}, status_code=status.HTTP_200_OK)
         else:
-            return {"message": "No data provided in the file"}, status.HTTP_204_NO_CONTENT
+            if format == 'csv':
+                return PlainTextResponse("status, message\nfailed, No data provided in the file", status_code=status.HTTP_204_NO_CONTENT)
+            else:  # Default to JSON
+                return JSONResponse({"status": "failed", "message": "No data provided in the file"}, status_code=status.HTTP_204_NO_CONTENT)
 
     except Exception as e:
-        print(f"An error occurred: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")    
+        if format == 'csv':
+            return PlainTextResponse(f"status, reason\nfailed, {str(e)}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        else:  # Default to JSON
+            return JSONResponse({"status": "failed", "reason": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 #Admin Endpoint 8
 # Function to update data in the Title table
@@ -1265,7 +1400,7 @@ async def update_title_ratings(title_id, average_rating, num_votes):
         try:
             await cursor.execute(query, (average_rating, num_votes, title_id))
             await connection.commit()
-            print("Insert successful")
+            #print("Insert successful")
         except Exception as e:
             print(f"Error executing query: {e}")
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
@@ -1273,13 +1408,13 @@ async def update_title_ratings(title_id, average_rating, num_votes):
 
 # Endpoint 8 for uploading title ratings
 @router.post("/admin/upload/titleratings")
-async def upload_title_ratings(file: Union[UploadFile, str]):
+async def upload_title_ratings(file: Union[UploadFile, str], format: str = 'json'):
     try:
         
         # Check if the uploaded file is of the correct format
         #if not file.filename.endswith(".tsv"):
             #raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uploaded file must be in TSV format")
-        
+        print("Endpoint 8")
         if isinstance(file, str):
             with open(file, 'r') as f:
                 df = pd.read_csv(f, sep='\t', low_memory=False)
@@ -1308,9 +1443,18 @@ async def upload_title_ratings(file: Union[UploadFile, str]):
             await update_title_ratings(title_id, average_rating, num_votes)
 
         if len(df) > 0:
-            return {"message": "File uploaded and data stored successfully"}, status.HTTP_200_OK
+            if format == 'csv':
+                return PlainTextResponse("status, message\nOK, File uploaded and data stored successfully", status_code=status.HTTP_200_OK)
+            else:  # Default to JSON
+                return JSONResponse({"status": "OK", "message": "File uploaded and data stored successfully"}, status_code=status.HTTP_200_OK)
         else:
-            return {"message": "No data provided in the file"}, status.HTTP_204_NO_CONTENT
+            if format == 'csv':
+                return PlainTextResponse("status, message\nfailed, No data provided in the file", status_code=status.HTTP_204_NO_CONTENT)
+            else:  # Default to JSON
+                return JSONResponse({"status": "failed", "message": "No data provided in the file"}, status_code=status.HTTP_204_NO_CONTENT)
 
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+        if format == 'csv':
+            return PlainTextResponse(f"status, reason\nfailed, {str(e)}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        else:  # Default to JSON
+            return JSONResponse({"status": "failed", "reason": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
