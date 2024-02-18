@@ -4,7 +4,7 @@ from fastapi.responses import HTMLResponse, FileResponse, PlainTextResponse, JSO
 from typing import List, Optional
 from ..models import TitleObject, NameObject, AkaTitle, PrincipalsObject, RatingObject, GenreTitle, NameTitleObject, tqueryObject, nqueryObject, gqueryObject
 from ..database import get_database_connection, check_connection, create_backup, restore, pick_backup, reset_database
-from ..utils.admin_helpers import insert_into_name, insert_into_profession, insert_into_profession_person, fetch_person_primary_key, check_existing_participation, update_title_ratings, insert_into_episode, insert_into_title, fetch_title_primary_key, insert_into_participates_in
+from ..utils.admin_helpers import insert_into_name, insert_into_profession, insert_into_profession_person, fetch_person_primary_key, check_existing_participation, update_title_ratings, insert_into_episode, insert_into_title, fetch_title_primary_key, insert_into_participates_in, insert_into_participates_in_crew
 import aiomysql
 from typing import Optional, Union
 import pandas as pd
@@ -1141,7 +1141,7 @@ async def upload_title_crew(file: Union[UploadFile, str], format: str = 'json'):
                         continue
 
                     # Insert data into the 'Participates_In' table for directors
-                    await insert_into_participates_in((title_fk, director_name_fk, None, 'director', None))
+                    await insert_into_participates_in_crew((title_fk, director_name_fk, None, 'director', None))
                 except Exception as e:
                     errors.append(str(e))
                     continue
@@ -1168,7 +1168,7 @@ async def upload_title_crew(file: Union[UploadFile, str], format: str = 'json'):
                         continue
 
                     # Insert data into the 'Participates_In' table for writers
-                    await insert_into_participates_in((title_fk, writer_name_fk, None, 'writer', None))
+                    await insert_into_participates_in_crew((title_fk, writer_name_fk, None, 'writer', None))
                 except Exception as e:
                     errors.append(str(e))
                     continue

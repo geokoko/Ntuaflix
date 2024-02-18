@@ -120,16 +120,30 @@ async def insert_into_episode(values):
 
 #Admin Endpoint 7
 async def insert_into_participates_in(values):
-    query = "INSERT INTO `Participates_In` (Title_FK, Name_FK, Ordering, Job_Category, `Character`) VALUES (%s, %s, %s, %s, %s)"
+    query = """
+        INSERT INTO `Participates_In` (Title_FK, Name_FK, Ordering, Job_Category, `Character`) 
+        VALUES (%s, %s, %s, %s, %s)
+        ON DUPLICATE KEY UPDATE 
+        Ordering = IF(Ordering IS NULL, VALUES(Ordering), Ordering),
+        `Character` = IF(`Character` IS NULL, VALUES(`Character`), `Character`)
+    """
+    check_query = """
+        SELECT Ordering FROM `Participates_In` WHERE Title_FK = %s AND Name_FK = %s AND Job_Category = %s
+    """
     async with await get_database_connection() as connection, connection.cursor() as cursor:
         try:
             values = [None if (v == '\\N' or v == '/N') else v for v in values]
+            await cursor.execute(check_query, (values[0], values[1], values[3]))
+            result = await cursor.fetchone()
+            if result is not None and result[0] is not None:
+                raise HTTPException(status_code=500, detail="Duplicate entry encountered: Ordering is not NULL")
             await cursor.execute(query, values)
             await connection.commit()
             print("Insert successful")
         except Exception as e:
             print(f"Error executing query: {e}")
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+
         
 async def fetch_title_primary_key(tconst):
     query = "SELECT `ID` FROM `Title` WHERE `Title_ID` = %s LIMIT 1"
@@ -164,3 +178,16 @@ async def update_title_ratings(title_id, average_rating, num_votes):
         except Exception as e:
             print(f"Error executing query: {e}")
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+
+async def insert_into_participates_in_crew(values):
+    query = "INSERT INTO `Participates_In` (Title_FK, Name_FK, Ordering, Job_Category, `Character`) VALUES (%s, %s, %s, %s, %s)"
+    async with await get_database_connection() as connection, connection.cursor() as cursor:
+        try:
+            values = [None if (v == '\\N' or v == '/N') else v for v in values]
+            await cursor.execute(query, values)
+            await connection.commit()
+            print("Insert successful")
+        except Exception as e:
+            print(f"Error executing query: {e}")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+
