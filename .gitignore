@@ -7,7 +7,6 @@ __pycache__/
 back-end/myenv/
 back-end/db/backups/
 data/
-.dockerignore
 docker/
 # ignore entries for SSL/TLS certificates and keys
 *.key
