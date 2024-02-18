@@ -1,7 +1,7 @@
 import unittest, requests, argparse, json
 from unittest.mock import patch
 import cli 
-BASE_URL = "http://127.0.0.1:9876/ntuaflix_api"
+BASE_URL = "https://0.0.0.0:9876/ntuaflix_api"
 
 #the basis of the unit test is that we are mocking the HTTP requests made (both get and post) and they are not really executed
 
@@ -201,28 +201,7 @@ class TestSearchTitle (unittest.TestCase):
             headers={'Content-Type': 'application/json'},
             params={"format": args.format}
         )
-'''
-#testing the search by genre endpoint
-class TestByGenre (unittest.TestCase): 
-    
-    #determine whether the request is post or get
-    @patch("requests.get")
-    def test_bygenre(self, mock_get): 
-        #pass the corresponding arguments
-        args = argparse.Namespace(from_value = "" ,genre = "", min = "", to = "", format="csv")
 
-        #call the function
-        cli.bygenre(args)
-
-        print("THIS IS THE MOCK", mock_get.call_args_list)
-
-        #verify that the correct URL was called
-        mock_get.assert_called_once_with(
-            f"{cli.BASE_URL}/bygenre",
-            #data=json.dumps({"titlePart": title}),
-            headers={'Content-Type': 'application/json'},
-            params={"format": args.format}
-        )'''
 
 #test the endpoint for returning specific name
 class TestName (unittest.TestCase): 

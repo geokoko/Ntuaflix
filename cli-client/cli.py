@@ -1,6 +1,6 @@
 import argparse, requests, os, csv, json
 
-BASE_URL = "http://127.0.0.1:9876/ntuaflix_api" 
+BASE_URL = "https://0.0.0.0:9876/ntuaflix_api" 
 
 
 #Using try-catch for error handlind
