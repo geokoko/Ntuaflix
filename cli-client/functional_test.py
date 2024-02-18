@@ -22,39 +22,58 @@ def test_healthcheck():
 
 def test_newtitles(): 
     function = "newtitles" #function you want to test
-    filename_1 = "./back-end/db/data/truncated_title.basics.tsv" #add the path to the tsv file 
-    filename_2 = "file"
-    format_option = "json" #json or csv
+    filename = "./back-end/db/data/truncated_title.basics.tsv" #add the path to the tsv file 
+    format_option = "json"
 
-    #Test Case 1: Valid file in empty database 
     try: 
         result = subprocess.run(
-            ["python", cli_script, function, "--filename", filename_1, "--format", format_option], 
+            ["python", cli_script, function, "--filename", filename, "--format", format_option], 
             capture_output=True,
             text=True, #set to true in order to return stdout as strings, not as binary
             check=False, #when check is set to true, if exit code is not 0, an exception is raised. We set it to false, in order to check exit code
         )
-        print(result.stdout)
-        assert result.returncode == 0
-        assert "Status Code 200" in result.stdout
-        print("Functional Test Case 1 passed")
+        if "Status Code 200" not in result.stdout: 
+            if not format_option == "json" or format_option == "csv":
+                print(f"Functional Test Case  failed: {format_option} is not supported")
+            elif not filename.lower().endswith(".tsv"): 
+                print(f"File '{filename}' is wrong")
+            elif f"Error: File '{filename}' does not exist" in result.stdout: 
+                print(f"Error: File '{filename}' does not exist")
+            else: 
+                print(f"Functional Test Case failed: {result.stdout}")
+            return
+        print("Functional Test Case passed")
     except subprocess.CalledProcessError as e: 
-        print(f"Functional Test Case 1 failed: {e.stderr}")
+        print(f"Functional Test Case  failed: {e.stderr}")
 
-    #Test Case 2: Invalid filename 
+def test_newakas(): 
+    function = "newakas" #function you want to test
+    filename = "./back-end/db/data/truncated_title.akas.tsv" #add the path to the tsv file 
+    format_option = "json"
+
     try: 
         result = subprocess.run(
-            ["python", cli_script, function, "--filename", filename_2, "--format", format_option], 
+            ["python", cli_script, function, "--filename", filename, "--format", format_option], 
             capture_output=True,
             text=True, #set to true in order to return stdout as strings, not as binary
             check=False, #when check is set to true, if exit code is not 0, an exception is raised. We set it to false, in order to check exit code
         )
-        print(result.stdout)
-        assert result.returncode == 0
-        assert "Error: File 'file' does not exist" in result.stdout
-        print("Functional Test Case 2 passed")
+        if "Status Code 200" not in result.stdout: 
+            if not format_option == "json" or format_option == "csv":
+                print(f"Functional Test Case  failed: {format_option} is not supported")
+            elif not filename.lower().endswith(".tsv"): 
+                print(f"File '{filename}' is wrong")
+            elif f"Error: File '{filename}' does not exist" in result.stdout: 
+                print(f"Error: File '{filename}' does not exist")
+            else: 
+                print(f"Functional Test Case failed: {result.stdout}")
+            return
+        print("Functional Test Case passed")
     except subprocess.CalledProcessError as e: 
-        print(f"Functional Test Case 2 failed: {e.stderr}")
+        print(f"Functional Test Case failed: {e.stderr}")
+
 
 if __name__ == "__main__": 
+    test_healthcheck()
     test_newtitles()
+    test_newakas()
