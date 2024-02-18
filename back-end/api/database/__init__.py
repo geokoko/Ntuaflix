@@ -68,7 +68,7 @@ async def restore():
         raise HTTPException(status_code=404, detail="No backup files available")
     
     choices["available_backups"].sort()
-    backup_file = choices["available_backups"][0]
+    backup_file = choices["available_backups"][-1]
 
     print(backup_file)
 
