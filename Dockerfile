@@ -10,7 +10,7 @@ WORKDIR /app
 COPY . /app
 
 RUN ls /app
-RUN pip install --no-cache-dir -r /app/back-end/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 RUN pip install pyarrow
 
 # Copy the entrypoint script and make it executable

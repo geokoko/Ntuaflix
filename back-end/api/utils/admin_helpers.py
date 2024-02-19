@@ -35,6 +35,8 @@ async def insert_into_profession(values):
         await cursor.execute(query_check, (profession_name,))
         result = await cursor.fetchone()
 
+        #print(f"Result: {result}")
+
         if result:
             # If the profession already exists, return its ID
             return result[0]
@@ -69,6 +71,7 @@ async def insert_into_profession_person(values):
     async with await get_database_connection() as connection, connection.cursor() as cursor:
 
         try:
+            print(f"Values: {values}")
             await cursor.execute(query, values)
             await connection.commit()
             print("Insert into 'Profession_Person' successful")
@@ -78,15 +81,19 @@ async def insert_into_profession_person(values):
         
 
 async def fetch_profession_primary_key(profession_name):
-    query = "SELECT `ID` FROM `Profession` WHERE `Profession` = %s LIMIT 1"
-    async with await get_database_connection() as connection, connection.cursor() as cursor:
-        await cursor.execute(query, (profession_name,))
-        result = await cursor.fetchone()
-        if result:
-            return result[0]
-        else:
-            return None
-        
+    try:
+        query = "SELECT `ID` FROM `Profession` WHERE `Profession` = %s LIMIT 1"
+        async with await get_database_connection() as connection, connection.cursor() as cursor:
+            await cursor.execute(query, (profession_name,))
+            result = await cursor.fetchall()
+            print(result)
+            if result:
+                return result[0][0]
+            else:
+                return None
+    except Exception as e:
+        print(f"Error executing query at person primary key: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
 #Admin Endpoint 5
 async def check_existing_participation(name_fk, title_fk, job_category):
     #values = [None if (val == '\\N' or val == '/N') else val for val in values]
@@ -198,14 +205,18 @@ async def fetch_title_primary_key(tconst):
 
 async def fetch_person_primary_key(nconst):
     query = "SELECT `ID` FROM `Person` WHERE `Name_ID` = %s LIMIT 1"
-    async with await get_database_connection() as connection, connection.cursor() as cursor:
-        await cursor.execute(query, (nconst,))
-        result = await cursor.fetchone()
-        if result:
-            return result[0]
-        else:
-            return None
-        
+    try:
+        async with await get_database_connection() as connection, connection.cursor() as cursor:
+            await cursor.execute(query, (nconst,))
+            result = await cursor.fetchone()
+            if result:
+                return result[0]
+            else:
+                return None
+    except Exception as e:
+        print(f"Error executing query: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+            
 
 # Function to update data in the Title table
 async def update_title_ratings(title_id, average_rating, num_votes):

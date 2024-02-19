@@ -859,26 +859,19 @@ async def initiate_restore():
 async def initiate_reset(format: str = 'json'):
     try:
         async with await get_database_connection() as connection, connection.cursor() as cursor:
-            tables_to_drop = [
-                        "Participates_In", 
-                        "Title_Genre", 
-                        "Profession_Person", 
-                        "Alt_Title", 
-                        "Episode", 
-                        "Person", 
-                        "Genre", 
-                        "Profession", 
-                        "Title"
-                    ]
-
-            # Execute DROP TABLE statements
-            for table in reversed(tables_to_drop):
-                await cursor.execute(f"DELETE FROM `{table}`")
-            await connection.commit()
-    
             # Get the directory of the current script
             current_dir = os.path.dirname(os.path.realpath(__file__))
             
+            ddl_script_path = os.path.join(current_dir, '..', '..', 'db', 'ntuaflix_ddl.sql')
+
+            with open(ddl_script_path, 'r') as ddl:
+                ddl_script = ddl.read()
+                commands = ddl_script.split(';')
+                for command in filter(None, map(str.strip, commands)):  # Remove any empty or whitespace-only strings
+                    if command:  
+                        await cursor.execute(command)
+            await connection.commit()
+            print("DDL script executed successfully")
             # Upload Titles
             titles = os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_title.basics.tsv')
             print(titles)
@@ -1205,17 +1198,21 @@ async def upload_name_basics(file: Union[UploadFile, str], format: str = 'json')
 
             # Insert data into the 'Name' table
             await insert_into_name((name_id, primaryname, image_url, birthyear, deathyear))
+        
+            name_fk = await fetch_person_primary_key(name_id)
+            print(name_fk)
 
             # Handle primaryProfession column
             professions_value = row['primaryProfession']
             if isinstance(professions_value, str):
+
                 professions = professions_value.split(',')
+                print(professions)
                 for profession in professions:
                     # Insert data into the 'Profession' table and fetch its ID
                     profession_fk = await insert_into_profession((profession,))
-
+                    print(profession_fk)
                     # Fetch Name_FK (id) of the name just added to the 'Name' table
-                    name_fk = await fetch_person_primary_key(name_id)
 
                     # Check if the profession_fk is not None before inserting into Profession_Person
                     if profession_fk is not None and name_fk is not None:

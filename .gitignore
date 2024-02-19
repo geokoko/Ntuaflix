@@ -4,7 +4,7 @@
 back-end/db/data/data_processing.ipynb
 __pycache__/
 *.pyc
-back-end/myenv/
+myenv
 back-end/db/backups/
 data/
 docker/

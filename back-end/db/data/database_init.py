@@ -16,8 +16,11 @@ host = os.environ.get('DB_HOST')
 user = os.environ.get('DB_USER')
 password = os.environ.get('DB_PASSWD')
 db = os.environ.get('DB_NAME')
+print(f"Host: {host}, User: {user}, Password: {password}, Database: {db}")
 print("Current Working Directory:", os.getcwd())
 script_path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, 'ntuaflix_ddl.sql'))
+container = "pedantic_cohen"
+print(f"Container: {container}, Script Path: {script_path}")
 
 def run_ddl_script(host, user, password, script_path):
     if platform.system() == "Windows":
