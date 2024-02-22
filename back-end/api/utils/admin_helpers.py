@@ -10,17 +10,15 @@ async def insert_into_name(values):
         INSERT INTO `Person` (Name_ID, Name, Image, Birth_Year, Death_Year) 
         VALUES (%s, %s, %s, %s, %s)
         ON DUPLICATE KEY UPDATE
-        Name = VALUES(Name),
-        Image = VALUES(Image),
-        Birth_Year = VALUES(Birth_Year),
-        Death_Year = VALUES(Death_Year)
+        Name_ID = VALUES(Name_ID),
+        Image = VALUES(Image)
     """
 
     async with await get_database_connection() as connection, connection.cursor() as cursor:
         try:
             await cursor.execute(query, values)
             await connection.commit()
-            print("Insert into 'Person' successful")
+            #print("Insert into 'Person' successful")
         except Exception as e:
             print(f"Error executing query: {e}")
             raise  # Re-raise the exception to see the full traceback
@@ -51,30 +49,27 @@ async def insert_into_profession(values):
             """
             await cursor.execute(query_insert, (profession_name,))
             await connection.commit()
-            print("Insert into 'Profession' successful")
+            #print("Insert into 'Profession' successful")
 
             # Return the ID of the profession (existing or newly inserted)
             return await fetch_profession_primary_key(profession_name)
 
-
+count = 0
 async def insert_into_profession_person(values):
     values = [None if (val == '\\N' or val == '/N') else val for val in values]
     
     query = """
         INSERT INTO `Profession_Person` (Profession_FK, Name_FK) 
         VALUES (%s, %s)
-        ON DUPLICATE KEY UPDATE
-        Profession_FK = VALUES(Profession_FK),
-        Name_FK = VALUES(Name_FK)
     """
-
+    global count
     async with await get_database_connection() as connection, connection.cursor() as cursor:
 
         try:
-            print(f"Values: {values}")
             await cursor.execute(query, values)
             await connection.commit()
-            print("Insert into 'Profession_Person' successful")
+            count += 1
+            #print(f"Insert into 'Profession_Person' successful{count}")
         except Exception as e:
             print(f"Error executing query: {e}")
             raise  # Re-raise the exception to see the full traceback
@@ -111,6 +106,7 @@ async def insert_into_title(values):
         INSERT INTO `Title` (Title_ID, Original_Title, Type) 
         VALUES (%s, %s, %s)
         ON DUPLICATE KEY UPDATE
+        Title_ID = VALUES(Title_ID),
         Original_Title = VALUES(Original_Title),
         Type = VALUES(Type)
     """

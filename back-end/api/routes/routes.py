@@ -846,15 +846,7 @@ async def initiate_backup():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-    
-# Admin restore backup
-@router.post("/admin/restore")
-async def initiate_restore():
-    try:
-        return await restore()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
+# Admin reset all
 @router.post("/admin/resetall")
 async def initiate_reset(format: str = 'json'):
     try:
@@ -1200,18 +1192,17 @@ async def upload_name_basics(file: Union[UploadFile, str], format: str = 'json')
             await insert_into_name((name_id, primaryname, image_url, birthyear, deathyear))
         
             name_fk = await fetch_person_primary_key(name_id)
-            print(name_fk)
 
             # Handle primaryProfession column
             professions_value = row['primaryProfession']
             if isinstance(professions_value, str):
 
                 professions = professions_value.split(',')
-                print(professions)
+                if name_fk == 1:
+                    print(professions)
                 for profession in professions:
                     # Insert data into the 'Profession' table and fetch its ID
                     profession_fk = await insert_into_profession((profession,))
-                    print(profession_fk)
                     # Fetch Name_FK (id) of the name just added to the 'Name' table
 
                     # Check if the profession_fk is not None before inserting into Profession_Person

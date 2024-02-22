@@ -13,7 +13,7 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     </head>
     <body>
-        <div id="loader" class="loader center" style="display:none;"></div>
+        <div id="loader" class="loader center"></div>
         <!-- Navigation -->
         <nav class="navbar navbar-expand-sm justify-content-end fixed-top">
             <div class="container-fluid">
@@ -117,6 +117,15 @@
             </div>
 
     <script>
+        function showLoader() {
+            document.getElementById('loader').classList.add('show');
+        }
+
+        // Example to hide the loader
+        function hideLoader() {
+            document.getElementById('loader').classList.remove('show');
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM fully loaded and parsed');
             document.getElementById('backup').addEventListener('click', function(e) {
@@ -185,13 +194,7 @@
                 e.preventDefault();
                 console.log("Reset button clicked");
                 if(confirm('Are you sure you want to reset the database to its original state? This will erase all current data.')) {
-                    const loader = document.querySelector('.loader');
-                    if (!loader) {
-                        console.error('Loader element not found.');
-                        return; // Stop the function if loader is not found
-                    }
-
-                    loader.classList.remove('loader-hidden');
+                    showLoader();
                     console.log('Loader should now be visible.');
 
                     fetch('/ntuaflix_api/admin/resetall', { method: 'POST' })
@@ -208,20 +211,21 @@
                             } else {
                                 alert('Reset failed: ' + data.message);
                             }
+                            hideLoader();
                         })
                         .catch(error => {
                             alert('Error: ' + error);
+                            hideLoader();
                         })
                         .finally(() => {
-                            if (loader) {
-                                loader.classList.add('loader-hidden');
-                                console.log('Loader should now be hidden.');
-                            }
+                            hideLoader();
+                            console.log('Loader should now be hidden.');    
                         });
                     }
             });
         });
     </script>
+    
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const searchTitleInput = document.getElementById('searchTitle');

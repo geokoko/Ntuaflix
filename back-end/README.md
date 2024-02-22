@@ -2,7 +2,7 @@
 
 To connect to the database, create a .env file in the project directory, adding values to the variables below according to your credentials.
 
-- DB_HOST
+- DB_HOST = db (if Docker is used, else add your hostname)
 - DB_NAME
 - DB_USER
 - DB_PASSWD

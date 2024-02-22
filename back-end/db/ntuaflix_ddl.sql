@@ -57,7 +57,7 @@ CREATE TABLE `Person` (
   `ID` int NOT NULL AUTO_INCREMENT,
   `Name_ID` varchar(255) NOT NULL UNIQUE,
   `Name` varchar(255) DEFAULT NULL,
-  `Image` varchar(255) DEFAULT NULL,
+  `Image` varchar(255) DEFAULT NULL UNIQUE,
   `Birth_Year` int DEFAULT NULL,
   `Death_Year` int DEFAULT NULL,
   PRIMARY KEY (`ID`)
@@ -65,24 +65,21 @@ CREATE TABLE `Person` (
 
 -- Create table `Participates_In`
 CREATE TABLE `Participates_In` (
-  `ID` int NOT NULL AUTO_INCREMENT,
   `Title_FK` int NOT NULL ,
   `Name_FK` int NOT NULL,
   `Ordering` int(11) DEFAULT NULL,
   `Job_Category` varchar(255) DEFAULT NULL,
   `Character` varchar(255) DEFAULT NULL,
-  PRIMARY KEY (`ID`),
-  UNIQUE KEY `unique_combination` (`Title_FK`, `Name_FK`, `Job_Category`),
+  PRIMARY KEY (`Title_FK`, `Name_FK`, `Job_Category`),
   FOREIGN KEY (`Title_FK`) REFERENCES `Title` (`ID`) ON DELETE CASCADE,
   FOREIGN KEY (`Name_FK`) REFERENCES `Person` (`ID`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Create table `Title_Genre`
 CREATE TABLE `Title_Genre` (
-  `ID` int NOT NULL AUTO_INCREMENT,
   `Title_FK` int NOT NULL,
   `Genre_FK` int NOT NULL,
-  PRIMARY KEY (`ID`),
+  PRIMARY KEY (`Title_FK`, `Genre_FK`),
   FOREIGN KEY (`Title_FK`) REFERENCES `Title` (`ID`) ON DELETE CASCADE,
   FOREIGN KEY (`Genre_FK`) REFERENCES `Genre` (`ID`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -90,16 +87,15 @@ CREATE TABLE `Title_Genre` (
 -- Create table `Profession`
 CREATE TABLE `Profession` (
   `ID` int NOT NULL AUTO_INCREMENT,
-  `Profession` varchar(255) DEFAULT NULL,
+  `Profession` varchar(255) DEFAULT NULL UNIQUE,
   PRIMARY KEY (`ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Create table `Profession_Person`
 CREATE TABLE `Profession_Person` (
-  `ID` int NOT NULL AUTO_INCREMENT,
   `Profession_FK` int NOT NULL,
   `Name_FK` int NOT NULL,
-  PRIMARY KEY (`ID`),
+  PRIMARY KEY (`Profession_FK`, `Name_FK`),
   FOREIGN KEY (`Profession_FK`) REFERENCES `Profession` (`ID`) ON DELETE CASCADE,
   FOREIGN KEY (`Name_FK`) REFERENCES `Person` (`ID`) ON DELETE CASCADE
 )ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
