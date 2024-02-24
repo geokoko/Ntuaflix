@@ -195,7 +195,6 @@ class TestTitle (unittest.TestCase):
         #call the function
         cli.title(args)
 
-        print("THIS IS THE MOCK", mock_get.mock_calls)
 
         #verify that the correct URL was called
         mock_get.assert_called_once_with(
@@ -217,7 +216,6 @@ class TestSearchTitle (unittest.TestCase):
         #call the function
         cli.searchtitle(args)
 
-        print("THIS IS THE MOCK", mock_get.call_args_list)
 
         #verify that the correct URL was called
         mock_get.assert_called_once_with(
@@ -227,29 +225,7 @@ class TestSearchTitle (unittest.TestCase):
             params={"format": args.format},
                 verify = False
         )
-'''
-#testing the search by genre endpoint
-class TestByGenre (unittest.TestCase): 
-    
-    #determine whether the request is post or get
-    @patch("requests.get")
-    def test_bygenre(self, mock_get): 
-        #pass the corresponding arguments
-        args = argparse.Namespace(from_value = "" ,genre = "", min = "", to = "", format="csv")
 
-        #call the function
-        cli.bygenre(args)
-
-        print("THIS IS THE MOCK", mock_get.call_args_list)
-
-        #verify that the correct URL was called
-        mock_get.assert_called_once_with(
-            f"{cli.BASE_URL}/bygenre",
-            #data=json.dumps({"titlePart": title}),
-            headers={'Content-Type': 'application/json'},
-            params={"format": args.format},
-                verify = False
-        )'''
 
 #test the endpoint for returning specific name
 class TestName (unittest.TestCase): 
