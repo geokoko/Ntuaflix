@@ -1,4 +1,8 @@
 import argparse, requests, os, csv, json
+import urllib3
+
+# Disable insecure request warnings
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 BASE_URL = "https://0.0.0.0:9876/ntuaflix_api" 
 
@@ -237,7 +241,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.scope == "healthcheck":
-        healthcheck(args)
         healthcheck(args)
     elif args.scope == "resetall":
         resetall(args)
