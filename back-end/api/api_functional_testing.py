@@ -3,6 +3,10 @@ import pandas as pd
 import io
 import os
 import json 
+import urllib3
+
+# Disable insecure request warnings
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 def test_upload_title_basics():
     # Set the endpoint URL
