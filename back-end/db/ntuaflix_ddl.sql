@@ -80,6 +80,7 @@ CREATE TABLE `Title_Genre` (
   `Title_FK` int NOT NULL,
   `Genre_FK` int NOT NULL,
   PRIMARY KEY (`Title_FK`, `Genre_FK`),
+  UNIQUE KEY `unique_combination` (`Title_FK`, `Genre_FK`),
   FOREIGN KEY (`Title_FK`) REFERENCES `Title` (`ID`) ON DELETE CASCADE,
   FOREIGN KEY (`Genre_FK`) REFERENCES `Genre` (`ID`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
