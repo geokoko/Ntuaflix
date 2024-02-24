@@ -846,24 +846,30 @@ async def initiate_backup():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-# Admin reset all
 @router.post("/admin/resetall")
 async def initiate_reset(format: str = 'json'):
     try:
         async with await get_database_connection() as connection, connection.cursor() as cursor:
+            tables_to_drop = [
+                        "Participates_In", 
+                        "Title_Genre", 
+                        "Profession_Person", 
+                        "Alt_Title", 
+                        "Episode", 
+                        "Person", 
+                        "Genre", 
+                        "Profession", 
+                        "Title"
+                    ]
+
+            # Execute DROP TABLE statements
+            for table in (tables_to_drop):
+                await cursor.execute(f"DELETE FROM `{table}`")
+            await connection.commit()
+    
             # Get the directory of the current script
             current_dir = os.path.dirname(os.path.realpath(__file__))
             
-            ddl_script_path = os.path.join(current_dir, '..', '..', 'db', 'ntuaflix_ddl.sql')
-
-            with open(ddl_script_path, 'r') as ddl:
-                ddl_script = ddl.read()
-                commands = ddl_script.split(';')
-                for command in filter(None, map(str.strip, commands)):  # Remove any empty or whitespace-only strings
-                    if command:  
-                        await cursor.execute(command)
-            await connection.commit()
-            print("DDL script executed successfully")
             # Upload Titles
             titles = os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_title.basics.tsv')
             print(titles)
@@ -996,6 +1002,7 @@ async def initiate_reset(format: str = 'json'):
             return PlainTextResponse(f"status, reason\nfailed, {str(e)}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:  # Default to JSON
             return JSONResponse({"status": "failed", "reason": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)    
+
 
 
 # endpoint 2

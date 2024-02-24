@@ -23,7 +23,7 @@ def test_resetall():
     function = "resetall" #function you want to test
     try: 
         result = subprocess.run(
-            ["python", cli_script, function], 
+            ["python3", cli_script, function], 
             capture_output=True,
             text=True, #set to true in order to return stdout as strings, not as binary
             check=False, #when check is set to true, if exit code is not 0, an exception is raised. We set it to false, in order to check exit code 
@@ -40,7 +40,7 @@ def test_title(titleID, format_option):
 
     try: 
         result = subprocess.run(
-            ["python", cli_script, function, "--titleID", titleID, "--format", format_option], 
+            ["python3", cli_script, function, "--titleID", titleID, "--format", format_option], 
             capture_output=True,
             text=True, #set to true in order to return stdout as strings, not as binary
             check=False, #when check is set to true, if exit code is not 0, an exception is raised. We set it to false, in order to check exit code
@@ -63,7 +63,7 @@ def test_searchtitle(titlepart, format_option):
 
     try: 
         result = subprocess.run(
-            ["python", cli_script, function, "--titlepart", titlepart, "--format", format_option], 
+            ["python3", cli_script, function, "--titlepart", titlepart, "--format", format_option], 
             capture_output=True,
             text=True, #set to true in order to return stdout as strings, not as binary
             check=False, #when check is set to true, if exit code is not 0, an exception is raised. We set it to false, in order to check exit code
@@ -86,7 +86,7 @@ def test_bygenre(genre, minrating, year_from, to, format_option):
 
     try: 
         result = subprocess.run(
-            ["python", cli_script, function, "--genre", genre, "--min", minrating, "--from", year_from,"--to", to, "--format", format_option], 
+            ["python3", cli_script, function, "--genre", genre, "--min", minrating, "--from", year_from,"--to", to, "--format", format_option], 
             capture_output=True,
             text=True, #set to true in order to return stdout as strings, not as binary
             check=False, #when check is set to true, if exit code is not 0, an exception is raised. We set it to false, in order to check exit code
@@ -109,7 +109,7 @@ def test_name(nameID, format_option):
 
     try: 
         result = subprocess.run(
-            ["python", cli_script, function, "--nameid", nameID, "--format", format_option], 
+            ["python3", cli_script, function, "--nameid", nameID, "--format", format_option], 
             capture_output=True,
             text=True, #set to true in order to return stdout as strings, not as binary
             check=False, #when check is set to true, if exit code is not 0, an exception is raised. We set it to false, in order to check exit code
@@ -132,7 +132,7 @@ def test_searchname(name, format_option):
 
     try: 
         result = subprocess.run(
-            ["python", cli_script, function, "--name", name, "--format", format_option], 
+            ["python3", cli_script, function, "--name", name, "--format", format_option], 
             capture_output=True,
             text=True, #set to true in order to return stdout as strings, not as binary
             check=False, #when check is set to true, if exit code is not 0, an exception is raised. We set it to false, in order to check exit code

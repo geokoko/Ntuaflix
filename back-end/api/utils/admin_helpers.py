@@ -61,6 +61,9 @@ async def insert_into_profession_person(values):
     query = """
         INSERT INTO `Profession_Person` (Profession_FK, Name_FK) 
         VALUES (%s, %s)
+        ON DUPLICATE KEY UPDATE
+        Profession_FK = VALUES(Profession_FK),
+        Name_FK = VALUES(Name_FK)
     """
     global count
     async with await get_database_connection() as connection, connection.cursor() as cursor:
