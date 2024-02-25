@@ -1,5 +1,6 @@
 from fastapi import HTTPException, status
 from ..database import get_database_connection
+import asyncio
 
 #Admin Endpoint 4
 async def insert_into_name(values):
@@ -15,13 +16,15 @@ async def insert_into_name(values):
     """
 
     async with await get_database_connection() as connection, connection.cursor() as cursor:
-        try:
-            await cursor.execute(query, values)
-            await connection.commit()
-            #print("Insert into 'Person' successful")
-        except Exception as e:
-            print(f"Error executing query: {e}")
-            raise  # Re-raise the exception to see the full traceback
+        await cursor.execute(query, values)
+        await connection.commit()
+        person_id = cursor.lastrowid
+        if person_id:
+            print(f"Insert into 'Person' successful with PK = {person_id}")
+        else:
+            person_id = await fetch_person_primary_key(values[0])
+
+        return person_id
 
 async def insert_into_profession(values):
     values = [None if (val == '\\N' or val == '/N') else val for val in values]
@@ -29,30 +32,23 @@ async def insert_into_profession(values):
 
     # Check if the profession already exists in the 'Profession' table
     query_check = "SELECT `ID` FROM `Profession` WHERE `Profession` = %s LIMIT 1"
-    async with await get_database_connection() as connection, connection.cursor() as cursor:
-        await cursor.execute(query_check, (profession_name,))
-        result = await cursor.fetchone()
-
-        #print(f"Result: {result}")
-
-        if result:
-            # If the profession already exists, return its ID
-            return result[0]
-        
-        else:
-            # If the profession doesn't exist, insert it into the 'Profession' table
-            query_insert = """
+    query_insert = """
                 INSERT INTO `Profession` (Profession) 
                 VALUES (%s)
                 ON DUPLICATE KEY UPDATE
                 Profession = VALUES(Profession)
             """
-            await cursor.execute(query_insert, (profession_name,))
-            await connection.commit()
-            #print("Insert into 'Profession' successful")
-
-            # Return the ID of the profession (existing or newly inserted)
-            return await fetch_profession_primary_key(profession_name)
+    async with await get_database_connection() as connection, connection.cursor() as cursor:
+         # If the profession doesn't exist, insert it into the 'Profession' table
+        await cursor.execute(query_insert, (profession_name,))
+        await connection.commit()
+        profession_id = cursor.lastrowid
+        if profession_id:
+            print(f"Insert into 'Profession' successful with ID {profession_id}")
+        else:
+            profession_id = await fetch_profession_primary_key(profession_name)
+        # Return the ID of the profession (existing or newly inserted)
+        return profession_id
 
 count = 0
 async def insert_into_profession_person(values):
@@ -72,23 +68,29 @@ async def insert_into_profession_person(values):
             await cursor.execute(query, values)
             await connection.commit()
             count += 1
-            #print(f"Insert into 'Profession_Person' successful{count}")
+
+            print(f"Insert into 'Profession_Person' successful{count}")
         except Exception as e:
             print(f"Error executing query: {e}")
             raise  # Re-raise the exception to see the full traceback
         
 
-async def fetch_profession_primary_key(profession_name):
+async def fetch_profession_primary_key(profession_name, retry=3, delay=0.1):
     try:
-        query = "SELECT `ID` FROM `Profession` WHERE `Profession` = %s LIMIT 1"
-        async with await get_database_connection() as connection, connection.cursor() as cursor:
-            await cursor.execute(query, (profession_name,))
-            result = await cursor.fetchall()
-            print(result)
-            if result:
-                return result[0][0]
-            else:
-                return None
+        while retry > 0:
+            query = "SELECT `ID` FROM `Profession` WHERE `Profession` = %s LIMIT 1"
+            async with await get_database_connection() as connection, connection.cursor() as cursor:
+                await cursor.execute(query, (profession_name,))
+                result = await cursor.fetchall()
+                print(f"Just fetched PROFESSION primary key: {result}")
+
+                if result:
+                    return result[0][0]
+                retry -= 1
+                await asyncio.sleep(delay)
+                print("Retrying...")
+
+        return None
     except Exception as e:
         print(f"Error executing query at person primary key: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
@@ -202,16 +204,18 @@ async def fetch_title_primary_key(tconst):
         else:
             return None
 
-async def fetch_person_primary_key(nconst):
+async def fetch_person_primary_key(nconst, retry=3, delay=0.1):
     query = "SELECT `ID` FROM `Person` WHERE `Name_ID` = %s LIMIT 1"
     try:
-        async with await get_database_connection() as connection, connection.cursor() as cursor:
-            await cursor.execute(query, (nconst,))
-            result = await cursor.fetchone()
-            if result:
-                return result[0]
-            else:
-                return None
+        while retry > 0:
+            async with await get_database_connection() as connection, connection.cursor() as cursor:
+                await cursor.execute("SELECT `ID` FROM `Person` WHERE `Name_ID` = %s LIMIT 1", (nconst,))
+                result = await cursor.fetchone()
+                if result:
+                    return result[0]
+                retry -= 1
+                await asyncio.sleep(delay)  # Wait before retry
+        return None
     except Exception as e:
         print(f"Error executing query: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")

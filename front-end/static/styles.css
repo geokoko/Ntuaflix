@@ -152,15 +152,26 @@ body{
 /*-------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------loader---------------------------------------------------------*/
-#loader{
-    display:none;
-     
+
+#overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; 
+  visibility: hidden; 
 }
 
-#loader.show{
-    display: flex;
-    justify-content: center;
-    align-items: center;
+#overlay.show {
+  visibility: visible; 
+}
+
+#loader{
     border: 12px solid #f3f3f3;
     border-radius: 50%;
     border-top: 12px solid #444444;
@@ -169,12 +180,6 @@ body{
     align-items: center;
     background-color: #3a255e; 
     animation: spin 1s linear infinite;
-}
-.center{
-    position: absolute; 
-    top: 50%; 
-    left: 50%;
-    transform: translate(-50%, -50%); 
 }
 
 @keyframes spin {

@@ -60,5 +60,5 @@ This guide walks you through setting up and running the NTUAflix application usi
 5. **Running the application**
     Ensure that no service is listening on localhost at port 3306. Then from the root directory of your project, run:
     ```bash
-    sudo docker-compose up --build
+    sudo docker-compose up
     ```
