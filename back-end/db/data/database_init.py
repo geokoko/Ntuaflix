@@ -337,8 +337,11 @@ def populate_database():
 
             for index, row in profession_df.iterrows():
                 profession = row['Profession']
+                if profession in profession_primary_keys:
+                    continue
                 try:
                     cursor.execute(profession_query, (profession,))
+                    print(f"Profession {profession} inserted")
                     connection.commit()
                 except Exception as e:
                     success = False
@@ -389,11 +392,9 @@ with connection.cursor() as cursor:
                     );""")
     res = cursor.fetchall()
 
-if not res:
-    print("Initializing database...")
-    run_ddl_script(host, user, password, script_path)
-    populate_database()
-else:
-    print("Database already initialized")
+
+print("Initializing database...")
+run_ddl_script(host, user, password, script_path)
+populate_database()
 
 connection.close()

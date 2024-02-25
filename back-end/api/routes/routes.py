@@ -1196,17 +1196,14 @@ async def upload_name_basics(file: Union[UploadFile, str], format: str = 'json')
             deathyear = row['deathYear']
 
             # Insert data into the 'Name' table
-            await insert_into_name((name_id, primaryname, image_url, birthyear, deathyear))
-        
-            name_fk = await fetch_person_primary_key(name_id)
+            name_fk = await insert_into_name((name_id, primaryname, image_url, birthyear, deathyear))
 
             # Handle primaryProfession column
             professions_value = row['primaryProfession']
             if isinstance(professions_value, str):
 
                 professions = professions_value.split(',')
-                if name_fk == 1:
-                    print(professions)
+                print(professions)
                 for profession in professions:
                     # Insert data into the 'Profession' table and fetch its ID
                     profession_fk = await insert_into_profession((profession,))
