@@ -2,6 +2,7 @@
 
 This guide walks you through setting up and running the NTUAflix application using Docker and docker-compose, including a FastAPI backend, MariaDB database, and Nginx as a reverse proxy.
 
+Team Members: Kokoromytis Georgios, Tsouknida Vasiliki, Jani Spyridon, Panou Konstantina, Papanikolaou Ariadni
 ## Prerequisites
 
 - Docker installed on your machine.
