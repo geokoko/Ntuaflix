@@ -14,11 +14,11 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 RUN pip install pyarrow
 
 # Copy the entrypoint script and make it executable
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Run FastAPI application using uvicorn on the specified port
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]
 
 
 

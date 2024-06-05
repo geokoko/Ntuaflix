@@ -5,19 +5,20 @@ source .env
 set +a
 
 echo "Checking if database is initialized...(currently running entrypoint)"
+sleep 10
 
 # Wait for the database service to be ready
-until mysql -h "${DB_HOST}" -u "${DB_USER}" -p"${DB_PASSWD}" -e ";" ; do
+until mariadb -h "${DB_HOST}" -u "${DB_USER}" -p"${DB_PASSWD}" -e ";" ; do
   >&2 echo "MariaDB is unavailable - sleeping"
   sleep 1
 done
 
-DB_EXISTS=$(mysql -h "${DB_HOST}" -u "${DB_USER}" -p"${DB_PASSWD}" -e "SHOW DATABASES LIKE '${DB_NAME}';" | grep "${DB_NAME}" > /dev/null; echo "$?")
+DB_EXISTS=$(mariadb -h "${DB_HOST}" -u "${DB_USER}" -p"${DB_PASSWD}" -e "SHOW DATABASES LIKE '${DB_NAME}';" | grep "${DB_NAME}" > /dev/null; echo "$?")
 DDL_SCRIPT_PATH="back-end/db/ntuaflix_ddl.sql"
 # If the database does not exist, run the DDL script
 if [[ "${DB_EXISTS}" -ne 0 ]]; then
    echo "Database does not exist. Initializing database..."
-   mysql -h "${DB_HOST}" -u "${DB_USER}" -p"${DB_PASSWD}" < "${DDL_SCRIPT_PATH}"
+   mariadb -h "${DB_HOST}" -u "${DB_USER}" -p"${DB_PASSWD}" < "${DDL_SCRIPT_PATH}"
 else
   echo "Database exists. Skipping initialization."
 fi

@@ -819,18 +819,7 @@ async def uploads_html(request: Request):
 @router.get("/admin/healthcheck")
 async def admin_health_check(format: str = 'json'):
     try:
-        async with await get_database_connection() as conn:
-            async with conn.cursor() as cursor:
-                await cursor.execute("SELECT 1;")
-                await cursor.fetchone()
-        data = {"status": "OK", "dataconnection": "Connection to database is OK."}
-        if format == 'csv':
-            csv_data = ','.join(map(str, data.values()))
-            csv_header = ','.join(data.keys())
-            return PlainTextResponse(f"{csv_header}\n{csv_data}\n", status_code=status.HTTP_200_OK)
-        else:  # Default to JSON
-            return JSONResponse(data, status_code=status.HTTP_200_OK)
-
+        return await check_connection()
     except Exception as e:
         data = {"status": "failed", "dataconnection": str(e)}
         if format == 'csv':
@@ -851,76 +840,15 @@ async def initiate_backup():
 @router.post("/admin/resetall")
 async def initiate_reset(format: str = 'json'):
     try:
-        async with await get_database_connection() as connection, connection.cursor() as cursor:
-            print("Starting reset process...")
-            tables_to_drop = [
-                        "Participates_In", 
-                        "Title_Genre", 
-                        "Profession_Person", 
-                        "Alt_Title", 
-                        "Episode", 
-                        "Person", 
-                        "Genre", 
-                        "Profession", 
-                        "Title"
-                    ]
-
-            # Execute DROP TABLE statements
-            for table in tables_to_drop:
-                try:
-                    await cursor.execute(f"TRUNCATE TABLE `{table}`")
-                except Exception as e:
-                    print(f"Error clearing table {table}: {e}")
-            
-            await connection.commit()
-
-            print("Database is now empty. Loading all the tables...")
-            async def upload_data_from_tsv(file_path, upload_function):
-                try:
-                    async with aiofiles.open(file_path, mode='rb') as file:
-                        response = await upload_function(file_path)
-                        if isinstance(response, JSONResponse) and response.status_code == 500:
-                            message = "Failed to upload data"
-                            print(f"{message} for {file_path}")
-                            return message
-                except Exception as e:
-                    print(f"Error uploading data from {file_path}: {e}")
-                    return str(e)
-                return None
-    
-            # Get the directory of the current script
-            current_dir = os.path.dirname(os.path.realpath(__file__))
-
-            files = {
-                'title_basics': (os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_title.basics.tsv'), upload_title_basics),
-                'title_akas':  (os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_title.akas.tsv'), upload_title_akas),
-                'name_basics': (os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_name.basics.tsv'), upload_name_basics),
-                'title_crew': (os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_title.crew.tsv'), upload_title_crew),
-                'title_episode': (os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_title.episode.tsv'), upload_title_episode),
-                'title_principals': (os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_title.principals.tsv'), upload_title_principals),
-                'title_ratings': (os.path.join(current_dir, '..', '..', 'db', 'data', 'truncated_title.ratings.tsv'), upload_title_ratings)
-            }
-            
-            for key, (filename, upload_func) in files.items():
-                error_message = await upload_data_from_tsv(filename, upload_func)
-                if error_message:
-                    if format == 'csv':
-                        return PlainTextResponse(f"status, reason\nfailed, {error_message}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-                    else:
-                        return JSONResponse({"status": "failed", "reason": error_message}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-                
-            if format == 'csv':
-                return PlainTextResponse("status\nOK", status_code=status.HTTP_200_OK)
-            else:
-                return JSONResponse({"status": "OK"}, status_code=status.HTTP_200_OK)
-
+        return await reset_database()
     except Exception as e:
+        data = {"status": "failed", "dataconnection": str(e)}
         if format == 'csv':
-            return PlainTextResponse(f"status, reason\nfailed, {str(e)}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            csv_data = ','.join(map(str, data.values()))
+            csv_header = ','.join(data.keys())
+            return PlainTextResponse(f"{csv_header}\n{csv_data}\n", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:  # Default to JSON
-            return JSONResponse({"status": "failed", "reason": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)    
- 
-
+            return JSONResponse(data, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # endpoint 2
