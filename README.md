@@ -12,10 +12,10 @@ Team Members: Kokoromytis Georgios, Tsouknida Vasiliki, Jani Spyridon, Panou Kon
 
 1. **Clone the Repository**
 
-    First, clone this repository to your local machine using:
+    Firstly, clone this repository to your local machine using:
 
     ```bash
-    git clone https://github.com/ntua/softeng23-42.git
+    git clone https://github.com/geokoko/Ntuaflix.git
     ```
 
 2. **Environment Variables**
